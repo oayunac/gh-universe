@@ -8,7 +8,7 @@ import {
 import type { Repo, OwnerSystem } from "../types/universe";
 import type { GitHubRepoRaw } from "../types/github";
 import { groupByOwner, normalizeRepo } from "../utils/normalize";
-import { parseRepoInput } from "../utils/parseRepoInput";
+import { parseOwnerOrRepoInput } from "../utils/parseRepoInput";
 import { loadPersisted, savePersisted } from "../utils/storage";
 
 interface AddRepoStatus {
@@ -96,27 +96,94 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
   discoverStatus: { loading: false, error: null, lastDiscovered: null },
 
   addRepoByInput: async (input: string) => {
-    const parsed = parseRepoInput(input);
+    const parsed = parseOwnerOrRepoInput(input);
     if (!parsed) {
-      set({ addRepoStatus: { loading: false, error: "Use `owner/repo` or a GitHub URL." } });
+      set({
+        addRepoStatus: {
+          loading: false,
+          error: "Use `owner`, `owner/repo`, or a GitHub URL.",
+        },
+      });
       return;
     }
 
-    const id = `${parsed.owner}/${parsed.name}`.toLowerCase();
-    if (get().repos.some((r) => r.id === id)) {
-      set({ addRepoStatus: { loading: false, error: "Repo already in your universe." } });
+    if (parsed.kind === "repo") {
+      const id = `${parsed.owner}/${parsed.name}`.toLowerCase();
+      if (get().repos.some((r) => r.id === id)) {
+        set({
+          addRepoStatus: {
+            loading: false,
+            error: `${parsed.fullName} is already in your universe.`,
+          },
+        });
+        return;
+      }
+
+      set({ addRepoStatus: { loading: true, error: null } });
+      try {
+        const raw = await fetchRepo(parsed.owner, parsed.name);
+        const repo = normalizeRepo(raw);
+        const repos = mergeRepo(get().repos, repo);
+        savePersisted(repos);
+        set({
+          repos,
+          systems: refreshSystems(repos),
+          addRepoStatus: { loading: false, error: null },
+        });
+      } catch (err) {
+        const message =
+          err instanceof GitHubError && err.kind === "not_found"
+            ? `${parsed.fullName} isn't on GitHub (deleted or renamed?).`
+            : errorMessage(err);
+        set({ addRepoStatus: { loading: false, error: message } });
+      }
       return;
     }
 
+    // parsed.kind === "owner" — pull a cluster of the owner's top repos so
+    // the resulting star actually has planets. Duplicates are harmless:
+    // mergeRepo updates in place and leaves the list length unchanged.
+    const ownerLogin = parsed.owner;
     set({ addRepoStatus: { loading: true, error: null } });
     try {
-      const raw = await fetchRepo(parsed.owner, parsed.name);
-      const repo = normalizeRepo(raw);
-      const repos = mergeRepo(get().repos, repo);
-      savePersisted(repos);
+      const fetched = await searchRepos({
+        q: `user:${ownerLogin}`,
+        sort: "stars",
+        order: "desc",
+        perPage: 5,
+      });
+      if (fetched.length === 0) {
+        set({
+          addRepoStatus: {
+            loading: false,
+            error: `No public repos found for @${ownerLogin}.`,
+          },
+        });
+        return;
+      }
+
+      const before = get().repos;
+      const beforeIds = new Set(before.map((r) => r.id));
+      const now = Date.now();
+      const merged = fetched
+        .map((r) => normalizeRepo(r, now))
+        .reduce((acc, repo) => mergeRepo(acc, repo), before);
+      const addedCount = merged.filter((r) => !beforeIds.has(r.id)).length;
+
+      if (addedCount === 0) {
+        set({
+          addRepoStatus: {
+            loading: false,
+            error: `@${ownerLogin}'s top repos are already in your universe.`,
+          },
+        });
+        return;
+      }
+
+      savePersisted(merged);
       set({
-        repos,
-        systems: refreshSystems(repos),
+        repos: merged,
+        systems: refreshSystems(merged),
         addRepoStatus: { loading: false, error: null },
       });
     } catch (err) {

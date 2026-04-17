@@ -16,19 +16,24 @@ export function RepoInput() {
   }
 
   return (
-    <form className="panel-section" onSubmit={handleSubmit}>
+    <form className="panel-section" onSubmit={handleSubmit} autoComplete="off">
       <label className="panel-label" htmlFor="repo-input">
-        Add a repo
+        Add owner or repo
       </label>
       <div className="input-row">
         <input
           id="repo-input"
+          name="repo-input"
           type="text"
-          placeholder="facebook/react or URL"
+          placeholder="facebook · facebook/react · URL"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           spellCheck={false}
           autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="none"
+          data-lpignore="true"
+          data-1p-ignore
           disabled={status.loading}
         />
         <button type="submit" disabled={status.loading || !value.trim()}>
