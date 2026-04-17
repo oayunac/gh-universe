@@ -1,4 +1,4 @@
-# gh-github
+# gh-universe
 
 A pure frontend visualization of GitHub repositories as stars and planets.
 

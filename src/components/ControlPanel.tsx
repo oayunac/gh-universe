@@ -44,7 +44,7 @@ export function ControlPanel() {
             target="_blank"
             rel="noreferrer"
           >
-            gh-github
+            gh-universe
           </a>
         </h1>
         <p className="panel-tagline">Explore repos as stars and planets.</p>
