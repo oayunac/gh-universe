@@ -412,9 +412,21 @@ button:disabled {
   z-index: 2;
 }
 
+.camera-hud-instruments {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .camera-hud-dial {
   display: block;
   width: 84px;
+  height: 84px;
+}
+
+.camera-hud-pitch {
+  display: block;
+  width: 28px;
   height: 84px;
 }
 

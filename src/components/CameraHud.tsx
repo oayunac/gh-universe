@@ -11,6 +11,12 @@ const DIAL_RADIUS = 36;
 const LABEL_OFFSET = 10;
 const ZOOM_STEP = 5;
 
+// Pitch meter geometry. The spine runs from y = -PITCH_SPAN (top) to
+// y = +PITCH_SPAN (bottom). We clamp the camera pitch display to ±PITCH_MAX
+// to match the control's clamp inside UniverseScene.
+const PITCH_SPAN = 36;
+const PITCH_MAX = 80;
+
 // Converts a compass bearing in degrees (0 = N, clockwise) to SVG-space
 // radians. SVG's +X points right, +Y points down, so N (up) is at -90°.
 function bearingToSvgRad(bearingDeg: number): number {
@@ -24,6 +30,7 @@ function bearingToSvgRad(bearingDeg: number): number {
 export function CameraHud({ cameraControlRef }: CameraHudProps) {
   const wedgeFillRef = useRef<SVGPathElement>(null);
   const wedgeLineRef = useRef<SVGPathElement>(null);
+  const pitchIndicatorRef = useRef<SVGGElement>(null);
   const azimuthRef = useRef<HTMLSpanElement>(null);
   const pitchRef = useRef<HTMLSpanElement>(null);
 
@@ -57,6 +64,14 @@ export function CameraHud({ cameraControlRef }: CameraHudProps) {
             `M ${x1.toFixed(2)} ${y1.toFixed(2)} L 0 0 L ${x2.toFixed(2)} ${y2.toFixed(2)}`
           );
         }
+        if (pitchIndicatorRef.current) {
+          const clamped = Math.max(-PITCH_MAX, Math.min(PITCH_MAX, pitchDeg));
+          const yPos = -(clamped / PITCH_MAX) * PITCH_SPAN;
+          pitchIndicatorRef.current.setAttribute(
+            "transform",
+            `translate(0 ${yPos.toFixed(2)})`
+          );
+        }
         if (azimuthRef.current) {
           azimuthRef.current.textContent = `${Math.round(yawDeg)}°`;
         }
@@ -76,6 +91,7 @@ export function CameraHud({ cameraControlRef }: CameraHudProps) {
 
   return (
     <div className="camera-hud" aria-label="Camera HUD">
+      <div className="camera-hud-instruments">
       <svg
         className="camera-hud-dial"
         viewBox="-54 -54 108 108"
@@ -123,6 +139,42 @@ export function CameraHud({ cameraControlRef }: CameraHudProps) {
         />
         <circle cx="0" cy="0" r="1.6" fill="rgba(255, 210, 122, 0.95)" />
       </svg>
+
+      <svg
+        className="camera-hud-pitch"
+        viewBox="-14 -54 28 108"
+        width="28"
+        height="84"
+        aria-hidden="true"
+      >
+        <line
+          x1="0"
+          y1={-PITCH_SPAN}
+          x2="0"
+          y2={PITCH_SPAN}
+          stroke="rgba(255, 255, 255, 0.2)"
+          strokeWidth="1"
+        />
+        <g stroke="rgba(255, 255, 255, 0.4)" strokeWidth="1">
+          <line x1="-4" y1={-PITCH_SPAN} x2="4" y2={-PITCH_SPAN} />
+          <line x1="-2" y1={-PITCH_SPAN / 2} x2="2" y2={-PITCH_SPAN / 2} />
+          <line x1="-3" y1="0" x2="3" y2="0" />
+          <line x1="-2" y1={PITCH_SPAN / 2} x2="2" y2={PITCH_SPAN / 2} />
+          <line x1="-4" y1={PITCH_SPAN} x2="4" y2={PITCH_SPAN} />
+        </g>
+        <g ref={pitchIndicatorRef}>
+          <line
+            x1="-6"
+            y1="0"
+            x2="6"
+            y2="0"
+            stroke="rgba(255, 210, 122, 0.9)"
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          />
+        </g>
+      </svg>
+      </div>
 
       <div className="camera-hud-angles">
         <span className="camera-hud-value" ref={azimuthRef}>0°</span>
