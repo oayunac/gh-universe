@@ -191,6 +191,25 @@ export function UniverseScene({
     }
   }, [selectedOwner]);
 
+  // Any owner selection — scene click, sidebar click, or save-list load —
+  // pans the camera toward that star. In-scene clicks set yaw/pitch before
+  // dispatching, so this is a redundant no-op for them; for store-driven
+  // paths (sidebar, etc.) it's the thing that actually moves the camera.
+  useEffect(() => {
+    if (!selectedOwner) return;
+    const star = stars.find((s) => s.system.owner === selectedOwner);
+    if (!star) return;
+    const dir = star.direction;
+    const targetPitch = Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1));
+    const rawYaw = Math.atan2(dir.x, -dir.z);
+    const currentYaw = yawRef.current;
+    const twoPi = Math.PI * 2;
+    const delta =
+      (((rawYaw - currentYaw) % twoPi) + twoPi * 1.5) % twoPi - Math.PI;
+    targetYawRef.current = currentYaw + delta;
+    targetPitchRef.current = targetPitch;
+  }, [selectedOwner, stars]);
+
   // When a repo is selected from outside the scene (e.g. the sidebar), the
   // user is probably still at a wide FOV. Pull the camera into deep zoom so
   // the planet is actually visible when we aim at it.
