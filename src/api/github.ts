@@ -60,6 +60,38 @@ export async function fetchRepo(owner: string, name: string): Promise<GitHubRepo
   return (await response.json()) as GitHubRepoRaw;
 }
 
+export interface SearchReposOptions {
+  q: string;
+  sort?: "stars" | "forks" | "updated" | "help-wanted-issues";
+  order?: "asc" | "desc";
+  perPage?: number;
+  page?: number;
+}
+
+// Wraps GitHub's /search/repositories. Used by the discovery feature to scan
+// a random slice of popular repos without any ranking of its own.
+export async function searchRepos(
+  options: SearchReposOptions
+): Promise<GitHubRepoRaw[]> {
+  const {
+    q,
+    sort = "stars",
+    order = "desc",
+    perPage = 30,
+    page = 1,
+  } = options;
+  const params = new URLSearchParams({
+    q,
+    sort,
+    order,
+    per_page: String(perPage),
+    page: String(page),
+  });
+  const response = await githubFetch(`/search/repositories?${params.toString()}`);
+  const json = (await response.json()) as { items?: GitHubRepoRaw[] };
+  return json.items ?? [];
+}
+
 // Follows `Link` header pagination; capped to keep the import calm.
 export async function fetchStarredRepos(
   username: string,

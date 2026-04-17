@@ -1,5 +1,10 @@
 import { create } from "zustand";
-import { fetchRepo, fetchStarredRepos, GitHubError } from "../api/github";
+import {
+  fetchRepo,
+  fetchStarredRepos,
+  GitHubError,
+  searchRepos,
+} from "../api/github";
 import type { Repo, OwnerSystem } from "../types/universe";
 import type { GitHubRepoRaw } from "../types/github";
 import { groupByOwner, normalizeRepo } from "../utils/normalize";
@@ -18,6 +23,12 @@ interface ImportStatus {
   username: string | null;
 }
 
+interface DiscoverStatus {
+  loading: boolean;
+  error: string | null;
+  lastDiscovered: string | null;
+}
+
 interface UniverseState {
   repos: Repo[];
   systems: OwnerSystem[];
@@ -27,6 +38,7 @@ interface UniverseState {
 
   addRepoStatus: AddRepoStatus;
   importStatus: ImportStatus;
+  discoverStatus: DiscoverStatus;
 
   addRepoByInput: (input: string) => Promise<void>;
   removeRepo: (id: string) => void;
@@ -36,6 +48,8 @@ interface UniverseState {
   removeImportCandidate: (id: string) => void;
   confirmImport: () => void;
   cancelImport: () => void;
+
+  discoverOwner: () => Promise<void>;
 
   selectOwner: (owner: string) => void;
   clearSelection: () => void;
@@ -77,6 +91,7 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
 
   addRepoStatus: { loading: false, error: null },
   importStatus: { loading: false, error: null, candidates: [], username: null },
+  discoverStatus: { loading: false, error: null, lastDiscovered: null },
 
   addRepoByInput: async (input: string) => {
     const parsed = parseRepoInput(input);
@@ -216,6 +231,98 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
     set({
       importStatus: { loading: false, error: null, candidates: [], username: null },
     });
+  },
+
+  // "Scan the sky" — picks a random page of popular repos, finds the first
+  // one whose owner isn't already in the local universe, then pulls that
+  // owner's top repos so the system has visible planets. No ranking of its
+  // own; GitHub's search sort does the heavy lifting.
+  discoverOwner: async () => {
+    const prior = get().discoverStatus.lastDiscovered;
+    set({
+      discoverStatus: { loading: true, error: null, lastDiscovered: prior },
+    });
+    try {
+      const existingOwners = new Set(
+        get().systems.map((s) => s.owner.toLowerCase())
+      );
+      const page = 1 + Math.floor(Math.random() * 20);
+      const candidates = await searchRepos({
+        q: "stars:>200",
+        sort: "stars",
+        order: "desc",
+        perPage: 50,
+        page,
+      });
+      if (candidates.length === 0) {
+        set({
+          discoverStatus: {
+            loading: false,
+            error: "No candidates returned — try again.",
+            lastDiscovered: prior,
+          },
+        });
+        return;
+      }
+
+      const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+      const novel = shuffled.find(
+        (r) => !existingOwners.has(r.owner.login.toLowerCase())
+      );
+      if (!novel) {
+        set({
+          discoverStatus: {
+            loading: false,
+            error: "All stars here are already in your universe — try again.",
+            lastDiscovered: prior,
+          },
+        });
+        return;
+      }
+      const ownerLogin = novel.owner.login;
+
+      // Fetch a small cluster of that owner's top repos so the new star has
+      // enough planets to feel like a real system.
+      let ownerRepos: GitHubRepoRaw[] = [];
+      try {
+        ownerRepos = await searchRepos({
+          q: `user:${ownerLogin}`,
+          sort: "stars",
+          order: "desc",
+          perPage: 5,
+          page: 1,
+        });
+      } catch {
+        // Fall back to just the repo that surfaced the owner.
+      }
+      const pool = ownerRepos.length > 0 ? ownerRepos : [novel];
+      const now = Date.now();
+      const merged = pool
+        .map((r) => normalizeRepo(r, now))
+        .reduce((acc, repo) => mergeRepo(acc, repo), get().repos);
+
+      savePersisted(merged);
+      set({
+        repos: merged,
+        systems: refreshSystems(merged),
+        selectedOwner: ownerLogin,
+        selectedRepoId: null,
+        hoveredRepoId: null,
+        discoverStatus: {
+          loading: false,
+          error: null,
+          lastDiscovered: ownerLogin,
+        },
+      });
+    } catch (err) {
+      set({
+        discoverStatus: {
+          loading: false,
+          error: errorMessage(err),
+          lastDiscovered: prior,
+        },
+      });
+    }
   },
 
   selectOwner: (owner: string) => {

@@ -439,10 +439,19 @@ button:disabled {
   border-color: rgba(255, 255, 255, 0.16);
 }
 
-.camera-hud {
+.corner-stack {
   position: absolute;
   bottom: 16px;
   right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.camera-hud {
   padding: 10px 12px;
   background: rgba(10, 14, 24, 0.72);
   border: 1px solid var(--panel-border);
@@ -456,7 +465,6 @@ button:disabled {
   font-size: 11px;
   color: var(--fg-muted);
   pointer-events: none;
-  z-index: 2;
 }
 
 .camera-hud-instruments {
@@ -525,6 +533,48 @@ button:disabled {
 .camera-hud-zoom button:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.1);
   border-color: rgba(255, 255, 255, 0.18);
+}
+
+.discovery-button {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 14, 24, 0.72);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  color: var(--fg-muted);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.discovery-button:hover:not(:disabled) {
+  background: rgba(10, 14, 24, 0.9);
+  color: var(--accent);
+  border-color: rgba(255, 210, 122, 0.35);
+}
+
+.discovery-button:disabled {
+  cursor: wait;
+  color: var(--accent);
+  border-color: rgba(255, 210, 122, 0.25);
+}
+
+.discovery-spinner {
+  animation: discovery-spin 1s linear infinite;
+}
+
+@keyframes discovery-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .canvas-hint {

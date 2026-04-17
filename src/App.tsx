@@ -5,6 +5,7 @@ import { InfoCard } from "./components/InfoCard";
 import { FullscreenToggle } from "./components/FullscreenToggle";
 import { SidebarToggle } from "./components/SidebarToggle";
 import { CameraHud } from "./components/CameraHud";
+import { DiscoveryButton } from "./components/DiscoveryButton";
 import { UniverseScene, type CameraControlHandle } from "./scene/UniverseScene";
 import { useUniverseStore } from "./store/useUniverseStore";
 import { useFullscreen } from "./utils/useFullscreen";
@@ -19,6 +20,8 @@ export function App() {
   const selectRepo = useUniverseStore((s) => s.selectRepo);
   const deselectRepo = useUniverseStore((s) => s.deselectRepo);
   const setHoveredRepo = useUniverseStore((s) => s.setHoveredRepo);
+  const discoverStatus = useUniverseStore((s) => s.discoverStatus);
+  const discoverOwner = useUniverseStore((s) => s.discoverOwner);
 
   const isEmpty = systems.length === 0;
   const canvasWrapperRef = useRef<HTMLElement>(null);
@@ -80,7 +83,14 @@ export function App() {
           supported={fsSupported}
           onToggle={toggleFullscreen}
         />
-        <CameraHud cameraControlRef={cameraControlRef} />
+        <div className="corner-stack">
+          <DiscoveryButton
+            onDiscover={discoverOwner}
+            loading={discoverStatus.loading}
+            error={discoverStatus.error}
+          />
+          <CameraHud cameraControlRef={cameraControlRef} />
+        </div>
         <div className="canvas-hint">
           {selectedOwner
             ? "Zoom in to approach the system · click empty space to return"
