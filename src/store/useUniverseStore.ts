@@ -5,17 +5,11 @@ import {
   GitHubError,
   searchRepos,
 } from "../api/github";
-import type { Repo, OwnerSystem, SavedList } from "../types/universe";
+import type { Repo, OwnerSystem } from "../types/universe";
 import type { GitHubRepoRaw } from "../types/github";
 import { groupByOwner, normalizeRepo } from "../utils/normalize";
 import { parseRepoInput } from "../utils/parseRepoInput";
-import {
-  generateSnapshotId,
-  loadPersisted,
-  loadSavedLists,
-  savePersisted,
-  saveSavedLists,
-} from "../utils/storage";
+import { loadPersisted, savePersisted } from "../utils/storage";
 
 interface AddRepoStatus {
   loading: boolean;
@@ -45,11 +39,11 @@ interface UniverseState {
   addRepoStatus: AddRepoStatus;
   importStatus: ImportStatus;
   discoverStatus: DiscoverStatus;
-  savedLists: SavedList[];
 
   addRepoByInput: (input: string) => Promise<void>;
   removeRepo: (id: string) => void;
   clearAll: () => void;
+  replaceRepos: (repos: Repo[]) => void;
 
   startImport: (username: string) => Promise<void>;
   removeImportCandidate: (id: string) => void;
@@ -57,10 +51,6 @@ interface UniverseState {
   cancelImport: () => void;
 
   discoverOwner: () => Promise<void>;
-
-  saveCurrentList: (name: string) => void;
-  loadSavedList: (id: string) => void;
-  deleteSavedList: (id: string) => void;
 
   selectOwner: (owner: string) => void;
   clearSelection: () => void;
@@ -104,7 +94,6 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
   addRepoStatus: { loading: false, error: null },
   importStatus: { loading: false, error: null, candidates: [], username: null },
   discoverStatus: { loading: false, error: null, lastDiscovered: null },
-  savedLists: loadSavedLists(),
 
   addRepoByInput: async (input: string) => {
     const parsed = parseRepoInput(input);
@@ -338,25 +327,10 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
     }
   },
 
-  saveCurrentList: (name: string) => {
-    const trimmed = name.trim();
-    if (!trimmed) return;
-    const { repos, savedLists } = get();
-    const snapshot: SavedList = {
-      id: generateSnapshotId(),
-      name: trimmed,
-      createdAt: Date.now(),
-      repos,
-    };
-    const next = [...savedLists, snapshot];
-    saveSavedLists(next);
-    set({ savedLists: next });
-  },
-
-  loadSavedList: (id: string) => {
-    const list = get().savedLists.find((l) => l.id === id);
-    if (!list) return;
-    const repos = list.repos;
+  // Used by the save/load-from-disk flow: drops the current list in favour
+  // of an externally sourced set (validated by the caller), re-groups
+  // systems, and clears any stale selection.
+  replaceRepos: (repos: Repo[]) => {
     savePersisted(repos);
     set({
       repos,
@@ -365,12 +339,6 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
       selectedRepoId: null,
       hoveredRepoId: null,
     });
-  },
-
-  deleteSavedList: (id: string) => {
-    const next = get().savedLists.filter((l) => l.id !== id);
-    saveSavedLists(next);
-    set({ savedLists: next });
   },
 
   selectOwner: (owner: string) => {

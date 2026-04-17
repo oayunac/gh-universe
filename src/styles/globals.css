@@ -402,57 +402,10 @@ button:disabled {
   border-color: rgba(255, 210, 122, 0.35);
 }
 
-.saved-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.saved-list li {
-  display: flex;
-  align-items: stretch;
-  gap: 4px;
-}
-
-.saved-list-load {
-  flex: 1;
-  min-width: 0;
-  text-align: left;
-  padding: 6px 10px;
-  background: var(--button-bg);
-  border: 1px solid var(--input-border);
-  color: var(--fg);
-  border-radius: 6px;
-  font: inherit;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  transition: background 120ms ease, border-color 120ms ease;
-}
-
-.saved-list-load:hover {
-  background: var(--button-hover);
-  border-color: rgba(255, 255, 255, 0.16);
-}
-
-.saved-list-name {
-  color: var(--fg);
-  font-size: 12px;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.saved-list-detail {
+.panel-footnote {
   color: var(--fg-muted);
-  font-size: 10px;
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
+  font-size: 11px;
+  opacity: 0.8;
 }
 
 .canvas-wrapper {
