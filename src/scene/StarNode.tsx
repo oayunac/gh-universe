@@ -19,20 +19,23 @@ interface StarNodeProps {
 // pointer interactions so faded stars can't hijack clicks.
 const INTERACT_DIM_THRESHOLD = 0.35;
 
+// The visible disc is intentionally small and crisp. The hit proxy is a
+// larger invisible sphere that keeps hover/click usable without a glow.
+const HIT_RADIUS_MULTIPLIER = 3.2;
+
 export function StarNode({
   position,
   brightness,
   label,
-  size = 0.6,
+  size = 0.3,
   onClick,
   interactive = true,
   revealRef,
 }: StarNodeProps) {
   const [hovered, setHovered] = useState(false);
   const coreRef = useRef<THREE.Mesh>(null);
-  const haloRef = useRef<THREE.Mesh>(null);
 
-  // Soft warm-white that tints slightly with brightness.
+  // Brightness is expressed purely through the disc's own opacity — no halo.
   const color = useMemo(() => {
     const base = new THREE.Color("#ffeccc");
     return base.lerp(new THREE.Color("#ffffff"), brightness * 0.6);
@@ -44,11 +47,6 @@ export function StarNode({
       const material = coreRef.current.material as THREE.MeshBasicMaterial;
       const target = (hovered ? 1 : brightness) * dim;
       material.opacity += (target - material.opacity) * Math.min(1, delta * 6);
-    }
-    if (haloRef.current) {
-      haloRef.current.rotation.z += delta * 0.05;
-      const haloMat = haloRef.current.material as THREE.MeshBasicMaterial;
-      haloMat.opacity = brightness * 0.12 * dim;
     }
   });
 
@@ -76,23 +74,26 @@ export function StarNode({
       }
     : {};
 
+  const hitRadius = size * HIT_RADIUS_MULTIPLIER;
+
   return (
     <group position={position} {...pointerProps}>
       <mesh ref={coreRef}>
-        <sphereGeometry args={[size, 24, 24]} />
+        <sphereGeometry args={[size, 20, 20]} />
         <meshBasicMaterial color={color} transparent opacity={brightness} />
       </mesh>
-      <mesh ref={haloRef}>
-        <sphereGeometry args={[size * 2.2, 16, 16]} />
-        <meshBasicMaterial
-          color={color}
-          transparent
-          opacity={brightness * 0.12}
-          depthWrite={false}
-        />
-      </mesh>
+      {interactive && (
+        <mesh>
+          <sphereGeometry args={[hitRadius, 12, 12]} />
+          <meshBasicMaterial
+            transparent
+            opacity={0}
+            depthWrite={false}
+          />
+        </mesh>
+      )}
       {hovered && interactive && (
-        <Billboard position={[0, size * 2.8, 0]}>
+        <Billboard position={[0, Math.max(size, 0.4) * 2.4, 0]}>
           <mesh>
             <planeGeometry args={[label.length * 0.35 + 1.2, 0.9]} />
             <meshBasicMaterial color="#0a0f1c" transparent opacity={0.7} />

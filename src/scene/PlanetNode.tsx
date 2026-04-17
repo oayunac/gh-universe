@@ -16,6 +16,7 @@ interface PlanetNodeProps {
 // Planets only become interactive once the system has revealed enough — this
 // prevents accidental hovers/clicks while the star is still far away.
 const INTERACT_THRESHOLD = 0.35;
+const HIT_RADIUS_MULTIPLIER = 2.6;
 
 export function PlanetNode({
   repo,
@@ -26,7 +27,6 @@ export function PlanetNode({
 }: PlanetNodeProps) {
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
-  const haloRef = useRef<THREE.Mesh>(null);
   const [localHover, setLocalHover] = useState(false);
 
   const brightness = useMemo(() => repoBrightness(repo.stars), [repo.stars]);
@@ -54,51 +54,43 @@ export function PlanetNode({
       const target = base * reveal;
       material.opacity += (target - material.opacity) * 0.15;
     }
-    if (haloRef.current) {
-      const haloMat = haloRef.current.material as THREE.MeshBasicMaterial;
-      haloMat.opacity = brightness * 0.1 * reveal;
-    }
   });
 
-  const size = 0.22 + brightness * 0.32;
+  const size = 0.14 + brightness * 0.2;
+  const hitRadius = size * HIT_RADIUS_MULTIPLIER;
 
   return (
     <group rotation={[layout.tilt, 0, 0]}>
       <group ref={groupRef}>
-          <mesh
-            ref={meshRef}
-            onPointerOver={(e) => {
-              if (revealRef.current < INTERACT_THRESHOLD) return;
-              e.stopPropagation();
-              setLocalHover(true);
-              onHoverChange(repo.id);
-              document.body.style.cursor = "pointer";
-            }}
-            onPointerOut={() => {
-              if (!localHover) return;
-              setLocalHover(false);
-              onHoverChange(null);
-              document.body.style.cursor = "";
-            }}
-            onClick={(e) => {
-              if (revealRef.current < INTERACT_THRESHOLD) return;
-              e.stopPropagation();
-              window.open(repo.url, "_blank", "noopener,noreferrer");
-            }}
-          >
-            <sphereGeometry args={[size, 20, 20]} />
-            <meshBasicMaterial color={color} transparent opacity={0} />
-          </mesh>
-          <mesh ref={haloRef}>
-            <sphereGeometry args={[size * 1.8, 12, 12]} />
-            <meshBasicMaterial
-              color={color}
-              transparent
-              opacity={0}
-              depthWrite={false}
-            />
-          </mesh>
-        </group>
+        <mesh
+          ref={meshRef}
+          onPointerOver={(e) => {
+            if (revealRef.current < INTERACT_THRESHOLD) return;
+            e.stopPropagation();
+            setLocalHover(true);
+            onHoverChange(repo.id);
+            document.body.style.cursor = "pointer";
+          }}
+          onPointerOut={() => {
+            if (!localHover) return;
+            setLocalHover(false);
+            onHoverChange(null);
+            document.body.style.cursor = "";
+          }}
+          onClick={(e) => {
+            if (revealRef.current < INTERACT_THRESHOLD) return;
+            e.stopPropagation();
+            window.open(repo.url, "_blank", "noopener,noreferrer");
+          }}
+        >
+          <sphereGeometry args={[size, 20, 20]} />
+          <meshBasicMaterial color={color} transparent opacity={0} />
+        </mesh>
+        <mesh>
+          <sphereGeometry args={[hitRadius, 10, 10]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      </group>
     </group>
   );
 }

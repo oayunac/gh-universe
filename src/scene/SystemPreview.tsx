@@ -63,7 +63,7 @@ export function SystemPreview({
     }
   });
 
-  const starSize = 0.7 + system.brightness * 0.5;
+  const starSize = 0.25 + system.brightness * 0.2;
   // Keep the central star at least fairly bright so the selected anchor reads
   // clearly even for owners with modest totals.
   const starBrightness = Math.max(system.brightness, 0.7);
