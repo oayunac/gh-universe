@@ -31,7 +31,6 @@ export function App() {
     <div
       className={`app-shell${sidebarCollapsed ? " sidebar-collapsed" : ""}`}
     >
-      <ControlPanel />
       <main
         ref={canvasWrapperRef}
         className={`canvas-wrapper${isFullscreen ? " is-fullscreen" : ""}`}
@@ -70,6 +69,7 @@ export function App() {
             />
           </Suspense>
         </Canvas>
+        <ControlPanel />
         <InfoCard />
         <SidebarToggle
           collapsed={sidebarCollapsed}

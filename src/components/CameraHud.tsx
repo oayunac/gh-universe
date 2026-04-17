@@ -53,9 +53,10 @@ export function CameraHud({ cameraControlRef }: CameraHudProps) {
         const y2 = Math.sin(rightRad) * DIAL_RADIUS;
 
         if (wedgeFillRef.current) {
+          const largeArc = fovDeg > 180 ? 1 : 0;
           wedgeFillRef.current.setAttribute(
             "d",
-            `M 0 0 L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${DIAL_RADIUS} ${DIAL_RADIUS} 0 0 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`
+            `M 0 0 L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${DIAL_RADIUS} ${DIAL_RADIUS} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`
           );
         }
         if (wedgeLineRef.current) {

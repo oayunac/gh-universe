@@ -198,8 +198,16 @@ export function UniverseScene({
     cameraControlRef.current = {
       getYaw: () => yawRef.current,
       getPitch: () => pitchRef.current,
-      getFov: () =>
-        camera instanceof THREE.PerspectiveCamera ? camera.fov : DEFAULT_FOV,
+      // Horizontal FOV derived from the vertical FOV and the current aspect
+      // ratio. r3f updates camera.aspect on canvas resize, so this reacts to
+      // browser size changes — the HUD wedge then reflects how much of the
+      // sky the user actually sees left-to-right.
+      getFov: () => {
+        if (!(camera instanceof THREE.PerspectiveCamera)) return DEFAULT_FOV;
+        const vFovRad = (camera.fov * Math.PI) / 180;
+        const hFovRad = 2 * Math.atan(Math.tan(vFovRad / 2) * camera.aspect);
+        return (hFovRad * 180) / Math.PI;
+      },
       zoomBy: (delta: number) => {
         targetFovRef.current = Math.max(
           MIN_FOV,
