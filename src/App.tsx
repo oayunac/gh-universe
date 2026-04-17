@@ -1,7 +1,6 @@
 import { Suspense, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ControlPanel } from "./components/ControlPanel";
-import { InfoCard } from "./components/InfoCard";
 import { SelectionPanel } from "./components/SelectionPanel";
 import { FullscreenToggle } from "./components/FullscreenToggle";
 import { SidebarToggle } from "./components/SidebarToggle";
@@ -74,10 +73,7 @@ export function App() {
           </Suspense>
         </Canvas>
         <ControlPanel />
-        <aside className="right-stack">
-          <SelectionPanel />
-          <InfoCard />
-        </aside>
+        <SelectionPanel />
         <SidebarToggle
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed((v) => !v)}

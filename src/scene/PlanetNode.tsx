@@ -5,6 +5,7 @@ import type { Repo } from "../types/universe";
 import type { PlanetLayout } from "../utils/layout";
 import { repoBrightness } from "../utils/brightness";
 import { SelectionRing } from "./SelectionRing";
+import { SceneLabel } from "./SceneLabel";
 
 interface PlanetNodeProps {
   repo: Repo;
@@ -108,6 +109,14 @@ export function PlanetNode({
           // appear before the planet itself does.
           <SelectionRing radius={size * 2.4} revealRef={revealRef} />
         )}
+        {/* Persistent repo name below each planet. Tracks the system reveal so
+            labels don't crowd the sky view before the system has emerged. */}
+        <SceneLabel
+          text={repo.name}
+          screenOffset={[0, -(size * 2.6 + 0.4), 0]}
+          height={0.42}
+          revealRef={revealRef}
+        />
       </group>
     </group>
   );

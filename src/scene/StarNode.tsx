@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState, type MutableRefObject } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
+import { SceneLabel } from "./SceneLabel";
 
 interface StarNodeProps {
   position: [number, number, number];
@@ -14,6 +15,10 @@ interface StarNodeProps {
   onClick?: () => void;
   onDoubleClick?: () => void;
   interactive?: boolean;
+  // Whether to render a transient label on hover. Default true. Host stars in
+  // the system view set this to false so their parent can render a persistent
+  // label below the star instead.
+  hoverLabel?: boolean;
   // When provided, the star fades as the reveal ref approaches 1 — used to
   // dim non-selected sky stars while the viewer is zooming into the selected
   // system.
@@ -28,6 +33,10 @@ const INTERACT_DIM_THRESHOLD = 0.35;
 // larger invisible sphere that keeps hover/click usable without a glow.
 const HIT_RADIUS_MULTIPLIER = 3.2;
 
+// Hover label sizing — generous height so usernames read clearly even when a
+// sky star sits at SKY_RADIUS distance from the camera.
+const HOVER_LABEL_HEIGHT = 2.0;
+
 export function StarNode({
   position,
   brightness,
@@ -37,6 +46,7 @@ export function StarNode({
   onClick,
   onDoubleClick,
   interactive = true,
+  hoverLabel = true,
   revealRef,
 }: StarNodeProps) {
   const [hovered, setHovered] = useState(false);
@@ -103,59 +113,13 @@ export function StarNode({
           />
         </mesh>
       )}
-      {hovered && interactive && (
-        <Billboard position={[0, Math.max(size, 0.4) * 2.4, 0]}>
-          <mesh>
-            <planeGeometry args={[label.length * 0.35 + 1.2, 0.9]} />
-            <meshBasicMaterial color="#0a0f1c" transparent opacity={0.7} />
-          </mesh>
-          <StarLabel text={label} />
-        </Billboard>
+      {hoverLabel && hovered && interactive && (
+        <SceneLabel
+          text={label}
+          screenOffset={[0, Math.max(size, 0.4) * 2.4, 0]}
+          height={HOVER_LABEL_HEIGHT}
+        />
       )}
     </group>
-  );
-}
-
-function Billboard({
-  position,
-  children,
-}: {
-  position: [number, number, number];
-  children: React.ReactNode;
-}) {
-  const groupRef = useRef<THREE.Group>(null);
-  useFrame(({ camera }) => {
-    groupRef.current?.quaternion.copy(camera.quaternion);
-  });
-  return (
-    <group ref={groupRef} position={position}>
-      {children}
-    </group>
-  );
-}
-
-function StarLabel({ text }: { text: string }) {
-  const texture = useMemo(() => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 512;
-    canvas.height = 128;
-    const ctx = canvas.getContext("2d")!;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#e9eef7";
-    ctx.font = "500 56px system-ui, -apple-system, Segoe UI, sans-serif";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(text, canvas.width / 2, canvas.height / 2);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.minFilter = THREE.LinearFilter;
-    tex.magFilter = THREE.LinearFilter;
-    tex.needsUpdate = true;
-    return tex;
-  }, [text]);
-  return (
-    <mesh position={[0, 0, 0.01]}>
-      <planeGeometry args={[text.length * 0.35 + 1, 0.9]} />
-      <meshBasicMaterial map={texture} transparent />
-    </mesh>
   );
 }

@@ -7,6 +7,7 @@ import { StarNode } from "./StarNode";
 import { OrbitRing } from "./OrbitRing";
 import { PlanetNode } from "./PlanetNode";
 import { SelectionRing } from "./SelectionRing";
+import { SceneLabel } from "./SceneLabel";
 
 interface SystemPreviewProps {
   system: OwnerSystem;
@@ -86,10 +87,20 @@ export function SystemPreview({
         size={starSize}
         onClick={onStarClick}
         onDoubleClick={onStarDoubleClick}
+        // Persistent label below replaces the hover label here.
+        hoverLabel={false}
       />
       {/* Persistent selection marker on the host star — the SystemPreview only
           mounts when an owner is selected, so its presence equals selection. */}
       <SelectionRing radius={starSize * 1.9} />
+      {/* Persistent owner name below the star. Fades in with the system reveal
+          so it doesn't appear before the star itself comes into view. */}
+      <SceneLabel
+        text={system.owner}
+        screenOffset={[0, -(starSize * 2.4 + 0.6), 0]}
+        height={0.7}
+        revealRef={revealRef}
+      />
       {planets.map(({ repo, layout }) => (
         <OrbitRing
           key={`ring-${repo.id}`}
