@@ -37,8 +37,16 @@ export function ControlPanel() {
   return (
     <aside className="control-panel">
       <header className="panel-header">
-        <h1>GitHub Universe</h1>
+        <h1>gh-github</h1>
         <p className="panel-tagline">Explore repos as stars and planets.</p>
+        <a
+          className="panel-link"
+          href="https://github.com/oayunac"
+          target="_blank"
+          rel="noreferrer"
+        >
+          github.com/oayunac
+        </a>
       </header>
 
       {selectedOwner && (

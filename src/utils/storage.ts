@@ -1,6 +1,6 @@
 import type { PersistedState, Repo } from "../types/universe";
 
-const STORAGE_KEY = "github-universe:v1";
+const STORAGE_KEY = "gh-github:v1";
 const CURRENT_VERSION = 1;
 
 export function loadPersisted(): Repo[] {

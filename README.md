@@ -1,6 +1,8 @@
-# GitHub Universe
+# gh-github
 
 A pure frontend visualization of GitHub repositories as stars and planets.
+
+GitHub profile: [oayunac](https://github.com/oayunac)
 
 - **owner = star** — brightness reflects combined popularity of that owner's repos in your universe.
 - **repo = planet** — orbits its owner-star; brightness reflects star count.

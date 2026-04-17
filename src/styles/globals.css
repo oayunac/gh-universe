@@ -82,6 +82,18 @@ body,
   font-size: 12px;
 }
 
+.panel-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--accent);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.panel-link:hover {
+  text-decoration: underline;
+}
+
 .panel-section {
   display: flex;
   flex-direction: column;

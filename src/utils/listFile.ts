@@ -1,6 +1,6 @@
 import type { Repo } from "../types/universe";
 
-const FILE_FORMAT = "github-universe-list";
+const FILE_FORMAT = "gh-github-list";
 const FILE_VERSION = 1;
 
 interface UniverseListFile {
@@ -60,7 +60,7 @@ export async function readUniverseListFile(file: File): Promise<Repo[]> {
 
 function defaultFilename(): string {
   const iso = new Date().toISOString().slice(0, 10);
-  return `github-universe-${iso}.json`;
+  return `gh-github-${iso}.json`;
 }
 
 function isRepoLike(value: unknown): value is Repo {

@@ -6,6 +6,7 @@ export function RepoList() {
   const systems = useUniverseStore((s) => s.systems);
   const selectedOwner = useUniverseStore((s) => s.selectedOwner);
   const selectedRepoId = useUniverseStore((s) => s.selectedRepoId);
+  const visibilityThreshold = useUniverseStore((s) => s.visibilityThreshold);
   const selectOwner = useUniverseStore((s) => s.selectOwner);
   const focusRepo = useUniverseStore((s) => s.focusRepo);
   const removeRepo = useUniverseStore((s) => s.removeRepo);
@@ -15,9 +16,13 @@ export function RepoList() {
 
   const visibleSystems = useMemo<OwnerSystem[]>(() => {
     const q = filter.trim().toLowerCase();
-    if (!q) return systems;
+    const thresholdedSystems = systems.filter(
+      (system) =>
+        system.totalStars >= visibilityThreshold || system.owner === selectedOwner
+    );
+    if (!q) return thresholdedSystems;
     const out: OwnerSystem[] = [];
-    for (const system of systems) {
+    for (const system of thresholdedSystems) {
       const ownerMatches = system.owner.toLowerCase().includes(q);
       if (ownerMatches) {
         out.push(system);
@@ -33,7 +38,7 @@ export function RepoList() {
       }
     }
     return out;
-  }, [systems, filter]);
+  }, [systems, filter, visibilityThreshold, selectedOwner]);
 
   if (systems.length === 0) {
     return (
@@ -46,7 +51,15 @@ export function RepoList() {
     );
   }
 
-  const totalRepos = systems.reduce((sum, s) => sum + s.repos.length, 0);
+  const thresholdedSystems = systems.filter(
+    (system) =>
+      system.totalStars >= visibilityThreshold || system.owner === selectedOwner
+  );
+  const visibleSystemCount = thresholdedSystems.length;
+  const visibleTotalRepos = thresholdedSystems.reduce(
+    (sum, s) => sum + s.repos.length,
+    0
+  );
   const visibleRepos = visibleSystems.reduce((sum, s) => sum + s.repos.length, 0);
   const filtering = filter.trim().length > 0;
 
@@ -55,8 +68,8 @@ export function RepoList() {
       <div className="panel-label-row">
         <span className="panel-label">
           {filtering
-            ? `Matches — ${visibleSystems.length} / ${systems.length} stars, ${visibleRepos} / ${totalRepos} planets`
-            : `Your universe — ${systems.length} star${systems.length === 1 ? "" : "s"}, ${totalRepos} planet${totalRepos === 1 ? "" : "s"}`}
+            ? `Matches — ${visibleSystems.length} / ${visibleSystemCount} stars, ${visibleRepos} / ${visibleTotalRepos} planets`
+            : `Your universe — ${visibleSystemCount} star${visibleSystemCount === 1 ? "" : "s"}, ${visibleTotalRepos} planet${visibleTotalRepos === 1 ? "" : "s"}`}
         </span>
         <button type="button" className="ghost-button tiny" onClick={clearAll}>
           Clear
