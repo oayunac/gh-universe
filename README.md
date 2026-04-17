@@ -1,5 +1,7 @@
 # gh-universe
 
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-Support-FFDD00?logo=buy-me-a-coffee&logoColor=000000)](https://buymeacoffee.com/k5t7bgc47xw)
+
 A pure frontend visualization of GitHub repositories as stars and planets.
 
 GitHub profile: [oayunac](https://github.com/oayunac)
