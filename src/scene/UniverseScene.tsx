@@ -229,6 +229,7 @@ export function UniverseScene({
             label={system.owner}
             size={0.7 + system.brightness * 0.5}
             onClick={() => selectAndCenter(system.owner)}
+            revealRef={revealRef}
           />
         )
       )}
