@@ -191,6 +191,15 @@ export function UniverseScene({
     }
   }, [selectedOwner]);
 
+  // When a repo is selected from outside the scene (e.g. the sidebar), the
+  // user is probably still at a wide FOV. Pull the camera into deep zoom so
+  // the planet is actually visible when we aim at it.
+  useEffect(() => {
+    if (selectedRepoId && targetFovRef.current > DEEP_ZOOM_FOV) {
+      targetFovRef.current = DEEP_ZOOM_FOV;
+    }
+  }, [selectedRepoId]);
+
   // Publish a small imperative handle so external UI (HUD, etc.) can read the
   // live camera orientation and nudge zoom without duplicating this logic.
   useEffect(() => {

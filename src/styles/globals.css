@@ -339,6 +339,33 @@ button:disabled {
   white-space: nowrap;
 }
 
+.repo-sublist-button {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  margin: 0;
+  font: inherit;
+  text-align: left;
+  color: var(--fg);
+  cursor: pointer;
+  border-radius: 4px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: background 120ms ease, color 120ms ease;
+}
+
+.repo-sublist-button:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.repo-sublist-button.active {
+  color: var(--accent);
+  background: rgba(255, 210, 122, 0.08);
+}
+
 .repo-sublist-meta {
   display: flex;
   gap: 6px;
@@ -353,6 +380,79 @@ button:disabled {
   font-size: 11px;
   padding-top: 8px;
   border-top: 1px solid var(--panel-border);
+}
+
+.panel-filter {
+  width: 100%;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  color: var(--fg);
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 120ms ease;
+}
+
+.panel-filter::placeholder {
+  color: var(--fg-muted);
+}
+
+.panel-filter:focus {
+  border-color: rgba(255, 210, 122, 0.35);
+}
+
+.saved-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.saved-list li {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+
+.saved-list-load {
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  padding: 6px 10px;
+  background: var(--button-bg);
+  border: 1px solid var(--input-border);
+  color: var(--fg);
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.saved-list-load:hover {
+  background: var(--button-hover);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.saved-list-name {
+  color: var(--fg);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.saved-list-detail {
+  color: var(--fg-muted);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .canvas-wrapper {

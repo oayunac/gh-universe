@@ -1,6 +1,7 @@
 import { useUniverseStore } from "../store/useUniverseStore";
 import { RepoInput } from "./RepoInput";
 import { StarredImport } from "./StarredImport";
+import { SavedLists } from "./SavedLists";
 import { RepoList } from "./RepoList";
 
 export function ControlPanel() {
@@ -32,6 +33,7 @@ export function ControlPanel() {
 
       <RepoInput />
       <StarredImport />
+      <SavedLists />
       <RepoList />
 
       <footer className="panel-footer">

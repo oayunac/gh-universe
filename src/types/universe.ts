@@ -23,3 +23,10 @@ export interface PersistedState {
   version: number;
   repos: Repo[];
 }
+
+export interface SavedList {
+  id: string;
+  name: string;
+  createdAt: number;
+  repos: Repo[];
+}

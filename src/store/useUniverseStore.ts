@@ -5,11 +5,17 @@ import {
   GitHubError,
   searchRepos,
 } from "../api/github";
-import type { Repo, OwnerSystem } from "../types/universe";
+import type { Repo, OwnerSystem, SavedList } from "../types/universe";
 import type { GitHubRepoRaw } from "../types/github";
 import { groupByOwner, normalizeRepo } from "../utils/normalize";
 import { parseRepoInput } from "../utils/parseRepoInput";
-import { loadPersisted, savePersisted } from "../utils/storage";
+import {
+  generateSnapshotId,
+  loadPersisted,
+  loadSavedLists,
+  savePersisted,
+  saveSavedLists,
+} from "../utils/storage";
 
 interface AddRepoStatus {
   loading: boolean;
@@ -39,6 +45,7 @@ interface UniverseState {
   addRepoStatus: AddRepoStatus;
   importStatus: ImportStatus;
   discoverStatus: DiscoverStatus;
+  savedLists: SavedList[];
 
   addRepoByInput: (input: string) => Promise<void>;
   removeRepo: (id: string) => void;
@@ -51,10 +58,15 @@ interface UniverseState {
 
   discoverOwner: () => Promise<void>;
 
+  saveCurrentList: (name: string) => void;
+  loadSavedList: (id: string) => void;
+  deleteSavedList: (id: string) => void;
+
   selectOwner: (owner: string) => void;
   clearSelection: () => void;
   selectRepo: (id: string) => void;
   deselectRepo: () => void;
+  focusRepo: (id: string) => void;
   setHoveredRepo: (id: string | null) => void;
 }
 
@@ -92,6 +104,7 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
   addRepoStatus: { loading: false, error: null },
   importStatus: { loading: false, error: null, candidates: [], username: null },
   discoverStatus: { loading: false, error: null, lastDiscovered: null },
+  savedLists: loadSavedLists(),
 
   addRepoByInput: async (input: string) => {
     const parsed = parseRepoInput(input);
@@ -325,6 +338,41 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
     }
   },
 
+  saveCurrentList: (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    const { repos, savedLists } = get();
+    const snapshot: SavedList = {
+      id: generateSnapshotId(),
+      name: trimmed,
+      createdAt: Date.now(),
+      repos,
+    };
+    const next = [...savedLists, snapshot];
+    saveSavedLists(next);
+    set({ savedLists: next });
+  },
+
+  loadSavedList: (id: string) => {
+    const list = get().savedLists.find((l) => l.id === id);
+    if (!list) return;
+    const repos = list.repos;
+    savePersisted(repos);
+    set({
+      repos,
+      systems: refreshSystems(repos),
+      selectedOwner: null,
+      selectedRepoId: null,
+      hoveredRepoId: null,
+    });
+  },
+
+  deleteSavedList: (id: string) => {
+    const next = get().savedLists.filter((l) => l.id !== id);
+    saveSavedLists(next);
+    set({ savedLists: next });
+  },
+
   selectOwner: (owner: string) => {
     if (!get().systems.some((s) => s.owner === owner)) return;
     if (get().selectedOwner === owner) return;
@@ -348,6 +396,20 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
   deselectRepo: () => {
     if (get().selectedRepoId === null) return;
     set({ selectedRepoId: null });
+  },
+
+  // Set both selectedOwner and selectedRepoId from any state in one commit —
+  // the sidebar uses this to navigate straight to a planet regardless of the
+  // current selection. The scene reacts: camera pans to the owner, auto-zoom
+  // narrows FOV, and the per-frame retarget homes in on the planet.
+  focusRepo: (id: string) => {
+    const repo = get().repos.find((r) => r.id === id);
+    if (!repo) return;
+    set({
+      selectedOwner: repo.owner,
+      selectedRepoId: id,
+      hoveredRepoId: null,
+    });
   },
 
   setHoveredRepo: (id: string | null) => {
