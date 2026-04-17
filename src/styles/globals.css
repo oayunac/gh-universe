@@ -360,6 +360,16 @@ button:disabled {
   height: 100vh;
 }
 
+.transition-overlay {
+  position: absolute;
+  inset: 0;
+  background: var(--bg);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 20;
+  will-change: opacity;
+}
+
 .fs-toggle {
   position: absolute;
   top: 16px;

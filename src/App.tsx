@@ -3,6 +3,10 @@ import { Canvas } from "@react-three/fiber";
 import { ControlPanel } from "./components/ControlPanel";
 import { InfoCard } from "./components/InfoCard";
 import { FullscreenToggle } from "./components/FullscreenToggle";
+import {
+  TransitionOverlay,
+  type TransitionOverlayHandle,
+} from "./components/TransitionOverlay";
 import { UniverseScene } from "./scene/UniverseScene";
 import { StarSystemScene } from "./scene/StarSystemScene";
 import { useUniverseStore } from "./store/useUniverseStore";
@@ -24,6 +28,7 @@ export function App() {
 
   const isEmpty = systems.length === 0;
   const canvasWrapperRef = useRef<HTMLElement>(null);
+  const transitionRef = useRef<TransitionOverlayHandle | null>(null);
   const { isFullscreen, supported: fsSupported, toggle: toggleFullscreen } =
     useFullscreen(canvasWrapperRef);
 
@@ -53,7 +58,11 @@ export function App() {
         >
           <Suspense fallback={null}>
             {viewMode === "universe" || !focusedSystem ? (
-              <UniverseScene systems={systems} onFocus={focusOwner} />
+              <UniverseScene
+                systems={systems}
+                onFocus={focusOwner}
+                transitionRef={transitionRef}
+              />
             ) : (
               <StarSystemScene
                 system={focusedSystem}
@@ -63,6 +72,7 @@ export function App() {
             )}
           </Suspense>
         </Canvas>
+        <TransitionOverlay ref={transitionRef} />
         <InfoCard />
         <FullscreenToggle
           isFullscreen={isFullscreen}
@@ -71,7 +81,7 @@ export function App() {
         />
         <div className="canvas-hint">
           {viewMode === "universe"
-            ? "Drag to look around · scroll to zoom · click a star to enter"
+            ? "Drag to look · zoom into a star or click to enter its system"
             : "Click empty space to return"}
         </div>
       </main>
