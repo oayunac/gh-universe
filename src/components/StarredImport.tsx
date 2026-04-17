@@ -17,19 +17,26 @@ export function StarredImport() {
 
   return (
     <div className="panel-section">
-      <form onSubmit={handleSubmit}>
-        <label className="panel-label" htmlFor="username-input">
+      {/* Intentionally avoid id/name tokens like "username" — password
+          managers pattern-match them and pop autofill over the sidebar. */}
+      <form onSubmit={handleSubmit} autoComplete="off">
+        <label className="panel-label" htmlFor="starred-owner">
           Import starred by user
         </label>
         <div className="input-row">
           <input
-            id="username-input"
+            id="starred-owner"
+            name="starred-owner"
             type="text"
-            placeholder="github username"
+            placeholder="github handle"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             spellCheck={false}
             autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            data-lpignore="true"
+            data-1p-ignore
             disabled={status.loading}
           />
           <button type="submit" disabled={status.loading || !username.trim()}>
