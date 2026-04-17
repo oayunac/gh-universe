@@ -62,6 +62,10 @@ interface UniverseSceneProps {
   hoveredRepoId: string | null;
   onHoverRepo: (id: string | null) => void;
   cameraControlRef?: MutableRefObject<CameraControlHandle | null>;
+  // Owners with totalStars below this threshold are hidden from the sky. The
+  // selected owner is always shown so the user can't lose their selection by
+  // sliding the threshold above it.
+  visibilityThreshold: number;
 }
 
 interface StarEntry {
@@ -81,16 +85,23 @@ export function UniverseScene({
   hoveredRepoId,
   onHoverRepo,
   cameraControlRef,
+  visibilityThreshold,
 }: UniverseSceneProps) {
   const stars = useMemo<StarEntry[]>(
     () =>
-      systems.map((system) => {
-        const position = ownerStarPosition(system.owner);
-        const direction = new THREE.Vector3(position.x, position.y, position.z).normalize();
-        const spectral = ownerSpectral(system.owner);
-        return { system, position, direction, spectral };
-      }),
-    [systems]
+      systems
+        .filter(
+          (system) =>
+            system.totalStars >= visibilityThreshold ||
+            system.owner === selectedOwner
+        )
+        .map((system) => {
+          const position = ownerStarPosition(system.owner);
+          const direction = new THREE.Vector3(position.x, position.y, position.z).normalize();
+          const spectral = ownerSpectral(system.owner);
+          return { system, position, direction, spectral };
+        }),
+    [systems, visibilityThreshold, selectedOwner]
   );
 
   const selectedEntry = useMemo(

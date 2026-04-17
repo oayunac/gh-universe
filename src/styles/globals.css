@@ -408,6 +408,44 @@ button:disabled {
   opacity: 0.8;
 }
 
+.panel-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  outline: none;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.panel-slider:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.panel-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 1px solid rgba(255, 210, 122, 0.45);
+  box-shadow: 0 0 6px rgba(255, 210, 122, 0.35);
+  cursor: pointer;
+}
+
+.panel-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 1px solid rgba(255, 210, 122, 0.45);
+  box-shadow: 0 0 6px rgba(255, 210, 122, 0.35);
+  cursor: pointer;
+}
+
 .canvas-wrapper {
   position: absolute;
   inset: 0;

@@ -35,6 +35,10 @@ interface UniverseState {
   selectedOwner: string | null;
   selectedRepoId: string | null;
   hoveredRepoId: string | null;
+  // Minimum total-star count an owner must have to render in the sky. The
+  // selected owner is exempt so the user can't lose track of their selection
+  // by sliding the threshold above it.
+  visibilityThreshold: number;
 
   addRepoStatus: AddRepoStatus;
   importStatus: ImportStatus;
@@ -58,6 +62,8 @@ interface UniverseState {
   deselectRepo: () => void;
   focusRepo: (id: string) => void;
   setHoveredRepo: (id: string | null) => void;
+
+  setVisibilityThreshold: (threshold: number) => void;
 }
 
 function refreshSystems(repos: Repo[]): OwnerSystem[] {
@@ -90,6 +96,7 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
   selectedOwner: null,
   selectedRepoId: null,
   hoveredRepoId: null,
+  visibilityThreshold: 0,
 
   addRepoStatus: { loading: false, error: null },
   importStatus: { loading: false, error: null, candidates: [], username: null },
@@ -449,5 +456,9 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
 
   setHoveredRepo: (id: string | null) => {
     set({ hoveredRepoId: id });
+  },
+
+  setVisibilityThreshold: (threshold: number) => {
+    set({ visibilityThreshold: Math.max(0, Math.floor(threshold)) });
   },
 }));

@@ -27,16 +27,18 @@ export function groupByOwner(repos: Repo[]): OwnerSystem[] {
     else buckets.set(key, [repo]);
   }
 
-  const systems: OwnerSystem[] = [];
-  for (const [owner, repoList] of buckets) {
+  // First pass: assemble each system without brightness so we can establish
+  // the population maximum used to normalize the brightness curve.
+  const partials = Array.from(buckets, ([owner, repoList]) => {
     const sorted = [...repoList].sort((a, b) => b.stars - a.stars);
     const totalStars = sorted.reduce((sum, r) => sum + r.stars, 0);
-    systems.push({
-      owner,
-      repos: sorted,
-      totalStars,
-      brightness: ownerBrightness(totalStars, sorted.length),
-    });
-  }
+    return { owner, repos: sorted, totalStars };
+  });
+  const maxTotalStars = partials.reduce((m, p) => Math.max(m, p.totalStars), 0);
+
+  const systems: OwnerSystem[] = partials.map((p) => ({
+    ...p,
+    brightness: ownerBrightness(p.totalStars, p.repos.length, maxTotalStars),
+  }));
   return systems.sort((a, b) => a.owner.localeCompare(b.owner));
 }

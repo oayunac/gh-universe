@@ -23,11 +23,11 @@ export function BackgroundStars({ count = 400, radius = 260 }: BackgroundStarsPr
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
     const mat = new THREE.PointsMaterial({
-      color: "#cdd6e6",
-      size: 0.9,
+      color: "#9aa6bd",
+      size: 0.7,
       sizeAttenuation: true,
       transparent: true,
-      opacity: 0.55,
+      opacity: 0.22,
       depthWrite: false,
     });
     return { geometry: geo, material: mat };

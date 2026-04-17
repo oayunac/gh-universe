@@ -22,6 +22,7 @@ export function App() {
   const setHoveredRepo = useUniverseStore((s) => s.setHoveredRepo);
   const discoverStatus = useUniverseStore((s) => s.discoverStatus);
   const discoverOwner = useUniverseStore((s) => s.discoverOwner);
+  const visibilityThreshold = useUniverseStore((s) => s.visibilityThreshold);
 
   const isEmpty = systems.length === 0;
   const canvasWrapperRef = useRef<HTMLElement>(null);
@@ -69,6 +70,7 @@ export function App() {
               hoveredRepoId={hoveredRepoId}
               onHoverRepo={setHoveredRepo}
               cameraControlRef={cameraControlRef}
+              visibilityThreshold={visibilityThreshold}
             />
           </Suspense>
         </Canvas>
