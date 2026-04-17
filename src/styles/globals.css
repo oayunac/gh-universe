@@ -397,14 +397,14 @@ button:disabled {
   bottom: 16px;
   right: 16px;
   padding: 10px 12px;
-  min-width: 132px;
   background: rgba(10, 14, 24, 0.72);
   border: 1px solid var(--panel-border);
   border-radius: 10px;
   backdrop-filter: blur(10px);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 6px;
   font-variant-numeric: tabular-nums;
   font-size: 11px;
   color: var(--fg-muted);
@@ -412,25 +412,30 @@ button:disabled {
   z-index: 2;
 }
 
-.camera-hud-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 12px;
+.camera-hud-dial {
+  display: block;
+  width: 84px;
+  height: 84px;
 }
 
-.camera-hud-direction {
-  font-size: 14px;
+.camera-hud-dial-labels text {
+  fill: rgba(233, 238, 247, 0.78);
   font-weight: 600;
-  color: var(--accent);
   letter-spacing: 0.04em;
+  font-family: inherit;
 }
 
-.camera-hud-label {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+.camera-hud-angles {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--fg);
+  font-size: 11px;
+}
+
+.camera-hud-separator {
   color: var(--fg-muted);
-  font-size: 10px;
+  opacity: 0.6;
 }
 
 .camera-hud-value {
@@ -440,8 +445,7 @@ button:disabled {
 .camera-hud-zoom {
   display: flex;
   gap: 6px;
-  justify-content: flex-end;
-  margin-top: 4px;
+  margin-top: 2px;
   pointer-events: auto;
 }
 
