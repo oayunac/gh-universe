@@ -6,6 +6,10 @@ interface StarNodeProps {
   position: [number, number, number];
   brightness: number;
   label: string;
+  // Hex color for the star core. Owners get this from their spectral class
+  // (see utils/spectralColor.ts); when omitted we fall back to a neutral cream
+  // so non-owner uses keep the original look.
+  color?: string;
   size?: number;
   onClick?: () => void;
   onDoubleClick?: () => void;
@@ -28,6 +32,7 @@ export function StarNode({
   position,
   brightness,
   label,
+  color = "#ffeccc",
   size = 0.3,
   onClick,
   onDoubleClick,
@@ -37,11 +42,10 @@ export function StarNode({
   const [hovered, setHovered] = useState(false);
   const coreRef = useRef<THREE.Mesh>(null);
 
-  // Brightness is expressed purely through the disc's own opacity — no halo.
-  const color = useMemo(() => {
-    const base = new THREE.Color("#ffeccc");
-    return base.lerp(new THREE.Color("#ffffff"), brightness * 0.6);
-  }, [brightness]);
+  // Color carries spectral class only; brightness is conveyed separately via
+  // opacity (below) and size (set by the caller). We deliberately don't lerp
+  // toward white as brightness rises, so a bright M-class red stays red.
+  const starColor = useMemo(() => new THREE.Color(color), [color]);
 
   useFrame((_, delta) => {
     const dim = revealRef ? Math.max(0, 1 - revealRef.current) : 1;
@@ -87,7 +91,7 @@ export function StarNode({
     <group position={position} {...pointerProps}>
       <mesh ref={coreRef}>
         <sphereGeometry args={[size, 20, 20]} />
-        <meshBasicMaterial color={color} transparent opacity={brightness} />
+        <meshBasicMaterial color={starColor} transparent opacity={brightness} />
       </mesh>
       {interactive && (
         <mesh>

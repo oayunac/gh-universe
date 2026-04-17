@@ -10,6 +10,10 @@ import { PlanetNode } from "./PlanetNode";
 interface SystemPreviewProps {
   system: OwnerSystem;
   direction: THREE.Vector3;
+  // Spectral-class color for the host star, derived deterministically from the
+  // owner name in UniverseScene. Passed in (rather than recomputed here) so
+  // the sky and the selected-system view always agree on the same hue.
+  spectralColor: string;
   revealRef: MutableRefObject<number>;
   hoveredRepoId: string | null;
   onHoverRepo: (id: string | null) => void;
@@ -27,6 +31,7 @@ interface SystemPreviewProps {
 export function SystemPreview({
   system,
   direction,
+  spectralColor,
   revealRef,
   hoveredRepoId,
   onHoverRepo,
@@ -76,6 +81,7 @@ export function SystemPreview({
         position={[0, 0, 0]}
         brightness={starBrightness}
         label={system.owner}
+        color={spectralColor}
         size={starSize}
         onClick={onStarClick}
         onDoubleClick={onStarDoubleClick}

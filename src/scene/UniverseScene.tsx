@@ -16,6 +16,7 @@ import {
   type PlanetLayout,
   type StarPosition,
 } from "../utils/layout";
+import { ownerSpectral, type SpectralInfo } from "../utils/spectralColor";
 import { StarNode } from "./StarNode";
 import { BackgroundStars } from "./BackgroundStars";
 import { SystemPreview } from "./SystemPreview";
@@ -67,6 +68,7 @@ interface StarEntry {
   system: OwnerSystem;
   position: StarPosition;
   direction: THREE.Vector3;
+  spectral: SpectralInfo;
 }
 
 export function UniverseScene({
@@ -85,7 +87,8 @@ export function UniverseScene({
       systems.map((system) => {
         const position = ownerStarPosition(system.owner);
         const direction = new THREE.Vector3(position.x, position.y, position.z).normalize();
-        return { system, position, direction };
+        const spectral = ownerSpectral(system.owner);
+        return { system, position, direction, spectral };
       }),
     [systems]
   );
@@ -409,13 +412,14 @@ export function UniverseScene({
     <>
       <BackgroundStars count={500} radius={260} />
 
-      {stars.map(({ system, position }) =>
+      {stars.map(({ system, position, spectral }) =>
         system.owner === selectedOwner ? null : (
           <StarNode
             key={system.owner}
             position={[position.x, position.y, position.z]}
             brightness={system.brightness}
             label={system.owner}
+            color={spectral.color}
             size={0.25 + system.brightness * 0.2}
             onClick={() => selectAndCenter(system.owner)}
             onDoubleClick={() => zoomIntoSystem(system.owner)}
@@ -429,6 +433,7 @@ export function UniverseScene({
           key={selectedEntry.system.owner}
           system={selectedEntry.system}
           direction={selectedEntry.direction}
+          spectralColor={selectedEntry.spectral.color}
           revealRef={revealRef}
           hoveredRepoId={hoveredRepoId}
           onHoverRepo={onHoverRepo}
