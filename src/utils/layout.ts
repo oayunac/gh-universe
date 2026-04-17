@@ -95,8 +95,9 @@ export function planetLayout(
   // Tighter orbit spacing so more of a typical system fits in view at once.
   const radius = 3 + index * 1.2 + rng() * 0.4;
   const angle = rng() * Math.PI * 2;
-  // Calmer orbital motion — about half the former speed.
-  const speed = 0.04 + rng() * 0.06;
+  // Slow orbital motion so planets are easy to track and click — about a
+  // quarter of the previous speed.
+  const speed = 0.01 + rng() * 0.015;
   const tilt = (rng() - 0.5) * 0.25;
   void owner;
   return { radius, angle, speed, tilt };
