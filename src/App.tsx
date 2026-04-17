@@ -1,10 +1,12 @@
-import { Suspense, useMemo } from "react";
+import { Suspense, useMemo, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ControlPanel } from "./components/ControlPanel";
 import { InfoCard } from "./components/InfoCard";
+import { FullscreenToggle } from "./components/FullscreenToggle";
 import { UniverseScene } from "./scene/UniverseScene";
 import { StarSystemScene } from "./scene/StarSystemScene";
 import { useUniverseStore } from "./store/useUniverseStore";
+import { useFullscreen } from "./utils/useFullscreen";
 
 export function App() {
   const viewMode = useUniverseStore((s) => s.viewMode);
@@ -21,11 +23,17 @@ export function App() {
   );
 
   const isEmpty = systems.length === 0;
+  const canvasWrapperRef = useRef<HTMLElement>(null);
+  const { isFullscreen, supported: fsSupported, toggle: toggleFullscreen } =
+    useFullscreen(canvasWrapperRef);
 
   return (
     <div className="app-shell">
       <ControlPanel />
-      <main className="canvas-wrapper">
+      <main
+        ref={canvasWrapperRef}
+        className={`canvas-wrapper${isFullscreen ? " is-fullscreen" : ""}`}
+      >
         {isEmpty && (
           <div className="empty-overlay">
             <div className="empty-title">A quiet universe awaits.</div>
@@ -56,6 +64,11 @@ export function App() {
           </Suspense>
         </Canvas>
         <InfoCard />
+        <FullscreenToggle
+          isFullscreen={isFullscreen}
+          supported={fsSupported}
+          onToggle={toggleFullscreen}
+        />
         <div className="canvas-hint">
           {viewMode === "universe"
             ? "Drag to look around · scroll to zoom · click a star to enter"

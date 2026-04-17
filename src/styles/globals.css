@@ -353,6 +353,45 @@ button:disabled {
     var(--bg);
 }
 
+/* Fill the whole screen when the browser grants fullscreen on this element. */
+.canvas-wrapper:fullscreen,
+.canvas-wrapper:-webkit-full-screen {
+  width: 100vw;
+  height: 100vh;
+}
+
+.fs-toggle {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 14, 24, 0.7);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  color: var(--fg-muted);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  z-index: 2;
+}
+
+.fs-toggle:hover {
+  background: rgba(10, 14, 24, 0.9);
+  color: var(--fg);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.fs-toggle[aria-pressed="true"] {
+  color: var(--accent);
+  border-color: rgba(255, 210, 122, 0.35);
+  background: rgba(255, 210, 122, 0.1);
+}
+
 .canvas-hint {
   position: absolute;
   bottom: 16px;
@@ -395,8 +434,8 @@ button:disabled {
 
 .info-card {
   position: absolute;
-  top: 24px;
-  right: 24px;
+  top: 68px;
+  right: 16px;
   max-width: 320px;
   padding: 14px 16px;
   background: rgba(10, 14, 24, 0.85);
