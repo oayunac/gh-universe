@@ -392,6 +392,78 @@ button:disabled {
   background: rgba(255, 210, 122, 0.1);
 }
 
+.camera-hud {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  padding: 10px 12px;
+  min-width: 132px;
+  background: rgba(10, 14, 24, 0.72);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+  color: var(--fg-muted);
+  pointer-events: none;
+  z-index: 2;
+}
+
+.camera-hud-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.camera-hud-direction {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+.camera-hud-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  font-size: 10px;
+}
+
+.camera-hud-value {
+  color: var(--fg);
+}
+
+.camera-hud-zoom {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+  margin-top: 4px;
+  pointer-events: auto;
+}
+
+.camera-hud-zoom button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.camera-hud-zoom button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
 .canvas-hint {
   position: absolute;
   bottom: 16px;

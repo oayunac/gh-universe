@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  type MutableRefObject,
+} from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { OwnerSystem } from "../types/universe";
@@ -36,6 +42,15 @@ const REVEAL_END = 0.5;
 // enough that a typical system's outer planets still fit.
 const DEEP_ZOOM_FOV = 34;
 
+// Minimal imperative handle for UI chrome (HUD) that needs to read the live
+// camera orientation or nudge zoom through the existing FOV lerp.
+export interface CameraControlHandle {
+  getYaw(): number;
+  getPitch(): number;
+  getFov(): number;
+  zoomBy(deltaFov: number): void;
+}
+
 interface UniverseSceneProps {
   systems: OwnerSystem[];
   selectedOwner: string | null;
@@ -45,6 +60,7 @@ interface UniverseSceneProps {
   onDeselectRepo: () => void;
   hoveredRepoId: string | null;
   onHoverRepo: (id: string | null) => void;
+  cameraControlRef?: MutableRefObject<CameraControlHandle | null>;
 }
 
 interface StarEntry {
@@ -62,6 +78,7 @@ export function UniverseScene({
   onDeselectRepo,
   hoveredRepoId,
   onHoverRepo,
+  cameraControlRef,
 }: UniverseSceneProps) {
   const stars = useMemo<StarEntry[]>(
     () =>
@@ -173,6 +190,27 @@ export function UniverseScene({
       targetFovRef.current = DEFAULT_FOV;
     }
   }, [selectedOwner]);
+
+  // Publish a small imperative handle so external UI (HUD, etc.) can read the
+  // live camera orientation and nudge zoom without duplicating this logic.
+  useEffect(() => {
+    if (!cameraControlRef) return;
+    cameraControlRef.current = {
+      getYaw: () => yawRef.current,
+      getPitch: () => pitchRef.current,
+      getFov: () =>
+        camera instanceof THREE.PerspectiveCamera ? camera.fov : DEFAULT_FOV,
+      zoomBy: (delta: number) => {
+        targetFovRef.current = Math.max(
+          MIN_FOV,
+          Math.min(MAX_FOV, targetFovRef.current + delta)
+        );
+      },
+    };
+    return () => {
+      cameraControlRef.current = null;
+    };
+  }, [camera, cameraControlRef]);
 
   useEffect(() => {
     const el = gl.domElement;

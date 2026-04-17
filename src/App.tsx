@@ -3,7 +3,8 @@ import { Canvas } from "@react-three/fiber";
 import { ControlPanel } from "./components/ControlPanel";
 import { InfoCard } from "./components/InfoCard";
 import { FullscreenToggle } from "./components/FullscreenToggle";
-import { UniverseScene } from "./scene/UniverseScene";
+import { CameraHud } from "./components/CameraHud";
+import { UniverseScene, type CameraControlHandle } from "./scene/UniverseScene";
 import { useUniverseStore } from "./store/useUniverseStore";
 import { useFullscreen } from "./utils/useFullscreen";
 
@@ -20,6 +21,7 @@ export function App() {
 
   const isEmpty = systems.length === 0;
   const canvasWrapperRef = useRef<HTMLElement>(null);
+  const cameraControlRef = useRef<CameraControlHandle | null>(null);
   const { isFullscreen, supported: fsSupported, toggle: toggleFullscreen } =
     useFullscreen(canvasWrapperRef);
 
@@ -60,6 +62,7 @@ export function App() {
               onDeselectRepo={deselectRepo}
               hoveredRepoId={hoveredRepoId}
               onHoverRepo={setHoveredRepo}
+              cameraControlRef={cameraControlRef}
             />
           </Suspense>
         </Canvas>
@@ -69,6 +72,7 @@ export function App() {
           supported={fsSupported}
           onToggle={toggleFullscreen}
         />
+        <CameraHud cameraControlRef={cameraControlRef} />
         <div className="canvas-hint">
           {selectedOwner
             ? "Zoom in to approach the system · click empty space to return"
