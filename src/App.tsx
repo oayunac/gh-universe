@@ -57,6 +57,7 @@ export function App() {
               onSelect={selectOwner}
               selectedRepoId={selectedRepoId}
               onSelectRepo={selectRepo}
+              onDeselectRepo={deselectRepo}
               hoveredRepoId={hoveredRepoId}
               onHoverRepo={setHoveredRepo}
             />

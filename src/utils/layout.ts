@@ -16,6 +16,11 @@ export interface PlanetLayout {
 // Distance from the viewer to the inner surface of the celestial sphere.
 export const SKY_RADIUS = 100;
 
+// Distance from the viewer when the selected system is fully revealed. Used
+// by both the scene (to place the system group) and the camera-tracking logic
+// to compute a selected planet's world position.
+export const SYSTEM_NEAR_RADIUS = 18;
+
 // Deterministic, uniformly-distributed point on the inside of the sky sphere.
 export function ownerStarPosition(owner: string): StarPosition {
   const rng = seededRandom(hashString(`owner:${owner}`));

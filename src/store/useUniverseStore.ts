@@ -239,6 +239,7 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
   },
 
   deselectRepo: () => {
+    if (get().selectedRepoId === null) return;
     set({ selectedRepoId: null });
   },
 

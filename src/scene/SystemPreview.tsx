@@ -2,20 +2,10 @@ import { useMemo, useRef, type MutableRefObject } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { OwnerSystem } from "../types/universe";
-import { planetLayout, SKY_RADIUS } from "../utils/layout";
+import { planetLayout, SKY_RADIUS, SYSTEM_NEAR_RADIUS } from "../utils/layout";
 import { StarNode } from "./StarNode";
 import { OrbitRing } from "./OrbitRing";
 import { PlanetNode } from "./PlanetNode";
-
-// Distance from the viewer at full reveal. Orbits of radius 3–15 fill a
-// comfortable portion of the view at this distance, which makes the system
-// feel approachable without visibly exiting the sky sphere.
-const NEAR_RADIUS = 18;
-
-// How quickly the group position tracks toward its target. A softer value
-// lets the "send to middle" motion feel smooth while still keeping up with a
-// moving selected planet.
-const GROUP_TRACK_RATE = 6;
 
 interface SystemPreviewProps {
   system: OwnerSystem;
@@ -28,10 +18,11 @@ interface SystemPreviewProps {
   onStarClick: () => void;
 }
 
-// Renders the selected owner's star system in-place at the owner's sky
-// direction. As the reveal ref rises, the group is pulled from sky distance
-// toward the viewer and orbital rings + planets fade in — a continuous
-// approach rather than a mode switch.
+// Renders the selected owner's star system at the owner's fixed sky direction.
+// The group itself only moves along that direction as the reveal grows — the
+// host star sits at the group's origin and therefore keeps a stable position
+// in the universe. Selecting a planet does NOT move the star; the camera
+// retargets instead (see UniverseScene).
 export function SystemPreview({
   system,
   direction,
@@ -59,47 +50,16 @@ export function SystemPreview({
   }, [direction]);
 
   const groupRef = useRef<THREE.Group>(null);
-  const targetGroupPos = useRef(new THREE.Vector3());
-  const basePos = useRef(new THREE.Vector3());
-  const localOffset = useRef(new THREE.Vector3());
 
-  useFrame((state, delta) => {
+  useFrame(() => {
     const reveal = revealRef.current;
-    const distance = SKY_RADIUS * (1 - reveal) + NEAR_RADIUS * reveal;
-
-    basePos.current
-      .copy(direction)
-      .multiplyScalar(distance);
-
-    // When a planet is selected, offset the whole group so that planet's
-    // current orbit position lands on basePos. The star and the other planets
-    // then visibly move around the pinned selection.
-    if (selectedRepoId) {
-      const selected = planets.find((p) => p.repo.id === selectedRepoId);
-      if (selected) {
-        const t = state.clock.getElapsedTime();
-        const angle = selected.layout.angle + t * selected.layout.speed;
-        localOffset.current.set(
-          Math.cos(angle) * selected.layout.radius,
-          0,
-          Math.sin(angle) * selected.layout.radius
-        );
-        localOffset.current.applyAxisAngle(
-          new THREE.Vector3(1, 0, 0),
-          selected.layout.tilt
-        );
-        localOffset.current.applyQuaternion(quaternion);
-        targetGroupPos.current.copy(basePos.current).sub(localOffset.current);
-      } else {
-        targetGroupPos.current.copy(basePos.current);
-      }
-    } else {
-      targetGroupPos.current.copy(basePos.current);
-    }
-
+    const distance = SKY_RADIUS * (1 - reveal) + SYSTEM_NEAR_RADIUS * reveal;
     if (groupRef.current) {
-      const alpha = 1 - Math.exp(-GROUP_TRACK_RATE * delta);
-      groupRef.current.position.lerp(targetGroupPos.current, alpha);
+      groupRef.current.position.set(
+        direction.x * distance,
+        direction.y * distance,
+        direction.z * distance
+      );
     }
   });
 

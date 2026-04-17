@@ -2,7 +2,14 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { OwnerSystem } from "../types/universe";
-import { ownerStarPosition, type StarPosition } from "../utils/layout";
+import {
+  ownerStarPosition,
+  planetLayout,
+  SKY_RADIUS,
+  SYSTEM_NEAR_RADIUS,
+  type PlanetLayout,
+  type StarPosition,
+} from "../utils/layout";
 import { StarNode } from "./StarNode";
 import { BackgroundStars } from "./BackgroundStars";
 import { SystemPreview } from "./SystemPreview";
@@ -29,6 +36,7 @@ interface UniverseSceneProps {
   onSelect: (owner: string) => void;
   selectedRepoId: string | null;
   onSelectRepo: (id: string) => void;
+  onDeselectRepo: () => void;
   hoveredRepoId: string | null;
   onHoverRepo: (id: string | null) => void;
 }
@@ -45,6 +53,7 @@ export function UniverseScene({
   onSelect,
   selectedRepoId,
   onSelectRepo,
+  onDeselectRepo,
   hoveredRepoId,
   onHoverRepo,
 }: UniverseSceneProps) {
@@ -66,6 +75,28 @@ export function UniverseScene({
     [stars, selectedOwner]
   );
 
+  // Precomputed layout for every repo of the currently selected owner, so the
+  // frame loop can find the selected planet's orbit parameters in O(n).
+  const selectedPlanetLayouts = useMemo<
+    Array<{ repoId: string; layout: PlanetLayout }> | null
+  >(() => {
+    if (!selectedEntry) return null;
+    return selectedEntry.system.repos.map((repo, index) => ({
+      repoId: repo.id,
+      layout: planetLayout(selectedEntry.system.owner, repo.fullName, index),
+    }));
+  }, [selectedEntry]);
+
+  // Stable ref to the selected-planet quaternion, aligned to the owner's sky
+  // direction — mirrors the orientation used inside SystemPreview.
+  const selectedQuatRef = useRef(new THREE.Quaternion());
+  useEffect(() => {
+    if (selectedEntry) {
+      const worldUp = new THREE.Vector3(0, 1, 0);
+      selectedQuatRef.current.setFromUnitVectors(worldUp, selectedEntry.direction);
+    }
+  }, [selectedEntry]);
+
   const { camera, gl } = useThree();
 
   // Look state
@@ -79,10 +110,20 @@ export function UniverseScene({
   const draggingRef = useRef(false);
   const lastRef = useRef({ x: 0, y: 0 });
 
+  // Mutable handle for the deselect callback so the drag listener (bound once)
+  // can always reach the latest store-backed implementation.
+  const onDeselectRepoRef = useRef(onDeselectRepo);
+  useEffect(() => {
+    onDeselectRepoRef.current = onDeselectRepo;
+  }, [onDeselectRepo]);
+
   // Reveal value — read every frame by SystemPreview / OrbitRing / PlanetNode.
   const revealRef = useRef(0);
 
   const lookTargetRef = useRef(new THREE.Vector3());
+  const planetWorldRef = useRef(new THREE.Vector3());
+  const planetLocalRef = useRef(new THREE.Vector3());
+  const TILT_AXIS = useRef(new THREE.Vector3(1, 0, 0)).current;
 
   // Click-to-select: aim the camera at the star using the standard idle lerp
   // and update the selection in the store. No FOV change — zooming reveals.
@@ -138,7 +179,11 @@ export function UniverseScene({
       if (!draggingRef.current) return;
       const dx = e.clientX - lastRef.current.x;
       const dy = e.clientY - lastRef.current.y;
+      if (dx === 0 && dy === 0) return;
       lastRef.current = { x: e.clientX, y: e.clientY };
+      // An actual drag gesture releases any centered planet — the user is
+      // explicitly asking to look elsewhere.
+      onDeselectRepoRef.current();
       targetYawRef.current += dx * YAW_SENSITIVITY;
       targetPitchRef.current -= dy * PITCH_SENSITIVITY;
       targetPitchRef.current = Math.max(
@@ -179,7 +224,54 @@ export function UniverseScene({
     };
   }, [camera, gl]);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
+    // If a planet is selected, retarget the camera at its current orbit
+    // position each frame. The system itself (and therefore the host star)
+    // stays fixed in world space — only the camera's aim follows the planet.
+    if (selectedEntry && selectedRepoId && selectedPlanetLayouts) {
+      const match = selectedPlanetLayouts.find(
+        (p) => p.repoId === selectedRepoId
+      );
+      if (match) {
+        const t = state.clock.getElapsedTime();
+        const angle = match.layout.angle + t * match.layout.speed;
+        const distance =
+          SKY_RADIUS * (1 - revealRef.current) +
+          SYSTEM_NEAR_RADIUS * revealRef.current;
+
+        planetLocalRef.current
+          .set(
+            Math.cos(angle) * match.layout.radius,
+            0,
+            Math.sin(angle) * match.layout.radius
+          )
+          .applyAxisAngle(TILT_AXIS, match.layout.tilt)
+          .applyQuaternion(selectedQuatRef.current);
+        planetWorldRef.current
+          .copy(selectedEntry.direction)
+          .multiplyScalar(distance)
+          .add(planetLocalRef.current);
+
+        const len = planetWorldRef.current.length() || 1;
+        const nx = planetWorldRef.current.x / len;
+        const ny = planetWorldRef.current.y / len;
+        const nz = planetWorldRef.current.z / len;
+        const targetPitch = Math.asin(THREE.MathUtils.clamp(ny, -1, 1));
+        const rawYaw = Math.atan2(nx, -nz);
+        // Unwrap so the idle lerp always takes the short way around.
+        const currentYaw = yawRef.current;
+        const twoPi = Math.PI * 2;
+        const yawDelta =
+          (((rawYaw - currentYaw) % twoPi) + twoPi * 1.5) % twoPi - Math.PI;
+        targetYawRef.current = currentYaw + yawDelta;
+        targetPitchRef.current = THREE.MathUtils.clamp(
+          targetPitch,
+          -MAX_PITCH,
+          MAX_PITCH
+        );
+      }
+    }
+
     const rotLerp = 1 - Math.exp(-ROTATION_LERP * delta);
     yawRef.current += (targetYawRef.current - yawRef.current) * rotLerp;
     pitchRef.current += (targetPitchRef.current - pitchRef.current) * rotLerp;
