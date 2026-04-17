@@ -4,6 +4,8 @@ A pure frontend visualization of GitHub repositories as stars and planets.
 
 GitHub profile: [oayunac](https://github.com/oayunac)
 
+Live site: [https://oayunac.github.io/gh-universe/](https://oayunac.github.io/gh-universe/)
+
 - **owner = star** — brightness reflects combined popularity of that owner's repos in your universe.
 - **repo = planet** — orbits its owner-star; brightness reflects star count.
 
@@ -41,6 +43,11 @@ npm run build      # typecheck + production bundle
 npm run preview    # preview the production bundle locally
 npm run typecheck  # TypeScript only
 ```
+
+## GitHub Pages
+
+This project is configured for GitHub Pages deployment from the `main` branch via GitHub Actions.
+The published site URL is `https://oayunac.github.io/gh-universe/`.
 
 ## Project structure
 
