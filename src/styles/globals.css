@@ -82,15 +82,12 @@ body,
   font-size: 12px;
 }
 
-.panel-link {
-  display: inline-block;
-  margin-top: 8px;
+.panel-title-link {
   color: var(--accent);
-  font-size: 12px;
   text-decoration: none;
 }
 
-.panel-link:hover {
+.panel-title-link:hover {
   text-decoration: underline;
 }
 
