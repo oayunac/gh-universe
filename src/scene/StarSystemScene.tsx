@@ -1,4 +1,4 @@
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import type { OwnerSystem } from "../types/universe";
@@ -61,9 +61,17 @@ export function StarSystemScene({
   );
 }
 
+const SYSTEM_FOV = 45;
+
 function SystemCamera({ maxRadius }: { maxRadius: number }) {
   const { camera } = useThree();
   const target = useRef<THREE.Vector3>(new THREE.Vector3());
+  useEffect(() => {
+    if (camera instanceof THREE.PerspectiveCamera) {
+      camera.fov = SYSTEM_FOV;
+      camera.updateProjectionMatrix();
+    }
+  }, [camera]);
   useFrame((_, delta) => {
     const distance = Math.max(14, maxRadius * 2.2);
     target.current.set(0, distance * 0.55, distance);

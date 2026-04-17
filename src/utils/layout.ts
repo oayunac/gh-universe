@@ -13,19 +13,19 @@ export interface PlanetLayout {
   tilt: number;
 }
 
-const UNIVERSE_RADIUS = 80;
+// Distance from the viewer to the inner surface of the celestial sphere.
+export const SKY_RADIUS = 100;
 
-// Deterministic owner position in 3D space — stable across refreshes.
+// Deterministic, uniformly-distributed point on the inside of the sky sphere.
 export function ownerStarPosition(owner: string): StarPosition {
   const rng = seededRandom(hashString(`owner:${owner}`));
-  // Rejection-sampled disc with subtle vertical spread for a calm distribution.
-  const r = Math.sqrt(rng()) * UNIVERSE_RADIUS;
   const theta = rng() * Math.PI * 2;
-  const y = (rng() - 0.5) * 12;
+  // Uniform on sphere: phi = acos(2u - 1) avoids clustering at poles.
+  const phi = Math.acos(2 * rng() - 1);
   return {
-    x: Math.cos(theta) * r,
-    y,
-    z: Math.sin(theta) * r,
+    x: SKY_RADIUS * Math.sin(phi) * Math.cos(theta),
+    y: SKY_RADIUS * Math.cos(phi),
+    z: SKY_RADIUS * Math.sin(phi) * Math.sin(theta),
   };
 }
 

@@ -36,7 +36,7 @@ export function App() {
         )}
         <Canvas
           dpr={[1, 2]}
-          camera={{ position: [0, 28, 90], fov: 45, near: 0.1, far: 1000 }}
+          camera={{ position: [0, 0, 0], fov: 55, near: 0.1, far: 1000 }}
           gl={{ antialias: true, alpha: false }}
           onCreated={({ gl }) => gl.setClearColor("#05070e")}
           onPointerMissed={() => {
@@ -58,7 +58,7 @@ export function App() {
         <InfoCard />
         <div className="canvas-hint">
           {viewMode === "universe"
-            ? "Click a star to enter its system"
+            ? "Drag to look around · scroll to zoom · click a star to enter"
             : "Click empty space to return"}
         </div>
       </main>
