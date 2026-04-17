@@ -42,6 +42,15 @@ body,
   grid-template-columns: 340px 1fr;
   height: 100vh;
   width: 100vw;
+  transition: grid-template-columns 220ms ease;
+}
+
+.app-shell.sidebar-collapsed {
+  grid-template-columns: 1fr;
+}
+
+.app-shell.sidebar-collapsed .control-panel {
+  display: none;
 }
 
 .control-panel {
@@ -390,6 +399,32 @@ button:disabled {
   color: var(--accent);
   border-color: rgba(255, 210, 122, 0.35);
   background: rgba(255, 210, 122, 0.1);
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 14, 24, 0.7);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  color: var(--fg-muted);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+  z-index: 2;
+}
+
+.sidebar-toggle:hover {
+  background: rgba(10, 14, 24, 0.9);
+  color: var(--fg);
+  border-color: rgba(255, 255, 255, 0.16);
 }
 
 .camera-hud {

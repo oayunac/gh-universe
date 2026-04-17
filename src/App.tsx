@@ -1,8 +1,9 @@
-import { Suspense, useRef } from "react";
+import { Suspense, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ControlPanel } from "./components/ControlPanel";
 import { InfoCard } from "./components/InfoCard";
 import { FullscreenToggle } from "./components/FullscreenToggle";
+import { SidebarToggle } from "./components/SidebarToggle";
 import { CameraHud } from "./components/CameraHud";
 import { UniverseScene, type CameraControlHandle } from "./scene/UniverseScene";
 import { useUniverseStore } from "./store/useUniverseStore";
@@ -22,11 +23,14 @@ export function App() {
   const isEmpty = systems.length === 0;
   const canvasWrapperRef = useRef<HTMLElement>(null);
   const cameraControlRef = useRef<CameraControlHandle | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { isFullscreen, supported: fsSupported, toggle: toggleFullscreen } =
     useFullscreen(canvasWrapperRef);
 
   return (
-    <div className="app-shell">
+    <div
+      className={`app-shell${sidebarCollapsed ? " sidebar-collapsed" : ""}`}
+    >
       <ControlPanel />
       <main
         ref={canvasWrapperRef}
@@ -67,6 +71,10 @@ export function App() {
           </Suspense>
         </Canvas>
         <InfoCard />
+        <SidebarToggle
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed((v) => !v)}
+        />
         <FullscreenToggle
           isFullscreen={isFullscreen}
           supported={fsSupported}
