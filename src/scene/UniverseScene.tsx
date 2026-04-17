@@ -27,8 +27,14 @@ const WHEEL_SENSITIVITY = 0.035;
 
 // Reveal curve — maps zoom depth (narrowing FOV) onto a smoothstep so the
 // system begins emerging once the user has clearly committed to zooming in.
-const REVEAL_START = 0.2;
-const REVEAL_END = 0.85;
+// Shifted earlier so other stars fade sooner and planets reach full brightness
+// well before the user hits maximum zoom.
+const REVEAL_START = 0.1;
+const REVEAL_END = 0.5;
+
+// FOV used by double-click on a star — narrow enough to feel zoomed in, wide
+// enough that a typical system's outer planets still fit.
+const DEEP_ZOOM_FOV = 34;
 
 interface UniverseSceneProps {
   systems: OwnerSystem[];
@@ -148,11 +154,24 @@ export function UniverseScene({
     [stars, onSelect]
   );
 
-  // On every selection change (including clearing), ease FOV back to its
-  // neutral value. This keeps the user from arriving at a new star already
-  // zoomed in from the previous one.
+  // Double-click a star: select and center it (like a normal click) and
+  // simultaneously pull the camera into a full-reveal FOV so all of its
+  // planets are immediately visible.
+  const zoomIntoSystem = useCallback(
+    (owner: string) => {
+      selectAndCenter(owner);
+      targetFovRef.current = DEEP_ZOOM_FOV;
+    },
+    [selectAndCenter]
+  );
+
+  // Reset FOV back to neutral when the user clears the selection (returns to
+  // the universe). Cross-selection between owners preserves the current zoom
+  // so double-click zoom doesn't get clobbered by the effect.
   useEffect(() => {
-    targetFovRef.current = DEFAULT_FOV;
+    if (selectedOwner === null) {
+      targetFovRef.current = DEFAULT_FOV;
+    }
   }, [selectedOwner]);
 
   useEffect(() => {
@@ -325,6 +344,7 @@ export function UniverseScene({
             label={system.owner}
             size={0.25 + system.brightness * 0.2}
             onClick={() => selectAndCenter(system.owner)}
+            onDoubleClick={() => zoomIntoSystem(system.owner)}
             revealRef={revealRef}
           />
         )
@@ -341,6 +361,7 @@ export function UniverseScene({
           selectedRepoId={selectedRepoId}
           onSelectRepo={onSelectRepo}
           onStarClick={() => selectAndCenter(selectedEntry.system.owner)}
+          onStarDoubleClick={() => zoomIntoSystem(selectedEntry.system.owner)}
         />
       )}
     </>

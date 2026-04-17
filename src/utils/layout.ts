@@ -18,8 +18,9 @@ export const SKY_RADIUS = 100;
 
 // Distance from the viewer when the selected system is fully revealed. Used
 // by both the scene (to place the system group) and the camera-tracking logic
-// to compute a selected planet's world position.
-export const SYSTEM_NEAR_RADIUS = 18;
+// to compute a selected planet's world position. Kept just far enough that a
+// typical system's outer orbits still fit inside a comfortable FOV.
+export const SYSTEM_NEAR_RADIUS = 24;
 
 // Deterministic, uniformly-distributed point on the inside of the sky sphere.
 export function ownerStarPosition(owner: string): StarPosition {
@@ -37,9 +38,11 @@ export function ownerStarPosition(owner: string): StarPosition {
 // Deterministic planet orbit parameters for a given repo within an owner system.
 export function planetLayout(owner: string, repoFullName: string, index: number): PlanetLayout {
   const rng = seededRandom(hashString(`planet:${repoFullName}`));
-  const radius = 3 + index * 1.6 + rng() * 0.6;
+  // Tighter orbit spacing so more of a typical system fits in view at once.
+  const radius = 3 + index * 1.2 + rng() * 0.4;
   const angle = rng() * Math.PI * 2;
-  const speed = 0.08 + rng() * 0.12;
+  // Calmer orbital motion — about half the former speed.
+  const speed = 0.04 + rng() * 0.06;
   const tilt = (rng() - 0.5) * 0.25;
   void owner;
   return { radius, angle, speed, tilt };

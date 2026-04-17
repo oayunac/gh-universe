@@ -16,6 +16,7 @@ interface SystemPreviewProps {
   selectedRepoId: string | null;
   onSelectRepo: (id: string) => void;
   onStarClick: () => void;
+  onStarDoubleClick: () => void;
 }
 
 // Renders the selected owner's star system at the owner's fixed sky direction.
@@ -32,6 +33,7 @@ export function SystemPreview({
   selectedRepoId,
   onSelectRepo,
   onStarClick,
+  onStarDoubleClick,
 }: SystemPreviewProps) {
   const planets = useMemo(
     () =>
@@ -76,6 +78,7 @@ export function SystemPreview({
         label={system.owner}
         size={starSize}
         onClick={onStarClick}
+        onDoubleClick={onStarDoubleClick}
       />
       {planets.map(({ repo, layout }) => (
         <OrbitRing

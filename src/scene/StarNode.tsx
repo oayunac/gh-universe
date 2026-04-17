@@ -8,6 +8,7 @@ interface StarNodeProps {
   label: string;
   size?: number;
   onClick?: () => void;
+  onDoubleClick?: () => void;
   interactive?: boolean;
   // When provided, the star fades as the reveal ref approaches 1 — used to
   // dim non-selected sky stars while the viewer is zooming into the selected
@@ -29,6 +30,7 @@ export function StarNode({
   label,
   size = 0.3,
   onClick,
+  onDoubleClick,
   interactive = true,
   revealRef,
 }: StarNodeProps) {
@@ -70,6 +72,11 @@ export function StarNode({
           if (isDimmed()) return;
           e.stopPropagation();
           onClick?.();
+        },
+        onDoubleClick: (e: ThreeEvent<MouseEvent>) => {
+          if (isDimmed()) return;
+          e.stopPropagation();
+          onDoubleClick?.();
         },
       }
     : {};
