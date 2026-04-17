@@ -670,11 +670,22 @@ button:disabled {
   max-width: 360px;
 }
 
-.info-card {
+.right-stack {
   position: absolute;
   top: 68px;
   right: 16px;
-  max-width: 320px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 3;
+  /* Children opt back in to pointer events so hover-only cards stay
+     transparent to the canvas underneath. */
+  pointer-events: none;
+}
+
+.info-card {
   padding: 14px 16px;
   background: rgba(10, 14, 24, 0.85);
   border: 1px solid var(--panel-border);
@@ -685,6 +696,108 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.selection-panel {
+  padding: 14px 16px;
+  background: rgba(10, 14, 24, 0.88);
+  border: 1px solid rgba(255, 210, 122, 0.22);
+  border-radius: 10px;
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+.selection-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.selection-panel-kind {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.selection-panel-spectral,
+.selection-panel-host {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-size: 11px;
+}
+
+.selection-panel-host {
+  color: var(--fg);
+  font-weight: 500;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selection-panel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 6px currentColor;
+}
+
+.selection-panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--fg);
+  word-break: break-word;
+}
+
+.selection-panel-description {
+  margin: 0;
+  font-size: 12px;
+  color: var(--fg-muted);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.selection-panel-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--fg-muted);
+}
+
+.selection-panel-footer {
+  font-size: 11px;
+  color: var(--fg-muted);
+  opacity: 0.85;
+}
+
+.selection-panel-link {
+  align-self: flex-start;
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 120ms ease, color 120ms ease;
+}
+
+.selection-panel-link:hover {
+  border-bottom-color: rgba(255, 210, 122, 0.5);
 }
 
 .info-card-title {

@@ -4,6 +4,7 @@ import * as THREE from "three";
 import type { Repo } from "../types/universe";
 import type { PlanetLayout } from "../utils/layout";
 import { repoBrightness } from "../utils/brightness";
+import { SelectionRing } from "./SelectionRing";
 
 interface PlanetNodeProps {
   repo: Repo;
@@ -102,6 +103,11 @@ export function PlanetNode({
           <sphereGeometry args={[hitRadius, 10, 10]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
+        {selected && (
+          // Selection marker fades in with the system reveal so it can't
+          // appear before the planet itself does.
+          <SelectionRing radius={size * 2.4} revealRef={revealRef} />
+        )}
       </group>
     </group>
   );

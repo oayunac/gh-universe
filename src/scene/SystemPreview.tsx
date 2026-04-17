@@ -6,6 +6,7 @@ import { planetLayout, SKY_RADIUS, SYSTEM_NEAR_RADIUS } from "../utils/layout";
 import { StarNode } from "./StarNode";
 import { OrbitRing } from "./OrbitRing";
 import { PlanetNode } from "./PlanetNode";
+import { SelectionRing } from "./SelectionRing";
 
 interface SystemPreviewProps {
   system: OwnerSystem;
@@ -86,6 +87,9 @@ export function SystemPreview({
         onClick={onStarClick}
         onDoubleClick={onStarDoubleClick}
       />
+      {/* Persistent selection marker on the host star — the SystemPreview only
+          mounts when an owner is selected, so its presence equals selection. */}
+      <SelectionRing radius={starSize * 1.9} />
       {planets.map(({ repo, layout }) => (
         <OrbitRing
           key={`ring-${repo.id}`}
