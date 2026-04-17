@@ -25,6 +25,8 @@ import { SystemPreview } from "./SystemPreview";
 const MAX_PITCH = (80 * Math.PI) / 180;
 const YAW_SENSITIVITY = 0.0025;
 const PITCH_SENSITIVITY = 0.0025;
+const DRAG_YAW_DIRECTION = -1;
+const DRAG_PITCH_DIRECTION = 1;
 const ROTATION_LERP = 6;
 const MIN_FOV = 18;
 const MAX_FOV = 70;
@@ -291,8 +293,8 @@ export function UniverseScene({
       // An actual drag gesture releases any centered planet — the user is
       // explicitly asking to look elsewhere.
       onDeselectRepoRef.current();
-      targetYawRef.current += dx * YAW_SENSITIVITY;
-      targetPitchRef.current -= dy * PITCH_SENSITIVITY;
+      targetYawRef.current += dx * YAW_SENSITIVITY * DRAG_YAW_DIRECTION;
+      targetPitchRef.current += dy * PITCH_SENSITIVITY * DRAG_PITCH_DIRECTION;
       targetPitchRef.current = Math.max(
         -MAX_PITCH,
         Math.min(MAX_PITCH, targetPitchRef.current)
