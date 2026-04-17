@@ -17,9 +17,8 @@ function formatDate(iso: string): string {
 export function InfoCard() {
   const hoveredId = useUniverseStore((s) => s.hoveredRepoId);
   const repos = useUniverseStore((s) => s.repos);
-  const viewMode = useUniverseStore((s) => s.viewMode);
 
-  if (viewMode !== "system" || !hoveredId) return null;
+  if (!hoveredId) return null;
   const repo = repos.find((r) => r.id === hoveredId);
   if (!repo) return null;
 

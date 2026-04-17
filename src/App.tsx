@@ -1,34 +1,22 @@
-import { Suspense, useMemo, useRef } from "react";
+import { Suspense, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ControlPanel } from "./components/ControlPanel";
 import { InfoCard } from "./components/InfoCard";
 import { FullscreenToggle } from "./components/FullscreenToggle";
-import {
-  TransitionOverlay,
-  type TransitionOverlayHandle,
-} from "./components/TransitionOverlay";
 import { UniverseScene } from "./scene/UniverseScene";
-import { StarSystemScene } from "./scene/StarSystemScene";
 import { useUniverseStore } from "./store/useUniverseStore";
 import { useFullscreen } from "./utils/useFullscreen";
 
 export function App() {
-  const viewMode = useUniverseStore((s) => s.viewMode);
   const systems = useUniverseStore((s) => s.systems);
-  const focusedOwner = useUniverseStore((s) => s.focusedOwner);
+  const selectedOwner = useUniverseStore((s) => s.selectedOwner);
   const hoveredRepoId = useUniverseStore((s) => s.hoveredRepoId);
-  const focusOwner = useUniverseStore((s) => s.focusOwner);
+  const selectOwner = useUniverseStore((s) => s.selectOwner);
+  const clearSelection = useUniverseStore((s) => s.clearSelection);
   const setHoveredRepo = useUniverseStore((s) => s.setHoveredRepo);
-  const returnToUniverse = useUniverseStore((s) => s.returnToUniverse);
-
-  const focusedSystem = useMemo(
-    () => (focusedOwner ? systems.find((s) => s.owner === focusedOwner) ?? null : null),
-    [focusedOwner, systems]
-  );
 
   const isEmpty = systems.length === 0;
   const canvasWrapperRef = useRef<HTMLElement>(null);
-  const transitionRef = useRef<TransitionOverlayHandle | null>(null);
   const { isFullscreen, supported: fsSupported, toggle: toggleFullscreen } =
     useFullscreen(canvasWrapperRef);
 
@@ -53,26 +41,19 @@ export function App() {
           gl={{ antialias: true, alpha: false }}
           onCreated={({ gl }) => gl.setClearColor("#05070e")}
           onPointerMissed={() => {
-            if (viewMode === "system") returnToUniverse();
+            if (selectedOwner) clearSelection();
           }}
         >
           <Suspense fallback={null}>
-            {viewMode === "universe" || !focusedSystem ? (
-              <UniverseScene
-                systems={systems}
-                onFocus={focusOwner}
-                transitionRef={transitionRef}
-              />
-            ) : (
-              <StarSystemScene
-                system={focusedSystem}
-                hoveredRepoId={hoveredRepoId}
-                onHoverRepo={setHoveredRepo}
-              />
-            )}
+            <UniverseScene
+              systems={systems}
+              selectedOwner={selectedOwner}
+              onSelect={selectOwner}
+              hoveredRepoId={hoveredRepoId}
+              onHoverRepo={setHoveredRepo}
+            />
           </Suspense>
         </Canvas>
-        <TransitionOverlay ref={transitionRef} />
         <InfoCard />
         <FullscreenToggle
           isFullscreen={isFullscreen}
@@ -80,9 +61,9 @@ export function App() {
           onToggle={toggleFullscreen}
         />
         <div className="canvas-hint">
-          {viewMode === "universe"
-            ? "Drag to look · zoom into a star or click to enter its system"
-            : "Click empty space to return"}
+          {selectedOwner
+            ? "Zoom in to approach the system · click empty space to return"
+            : "Drag to look · click a star to select, then zoom to approach"}
         </div>
       </main>
     </div>

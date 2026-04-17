@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { fetchRepo, fetchStarredRepos, GitHubError } from "../api/github";
-import type { Repo, OwnerSystem, ViewMode } from "../types/universe";
+import type { Repo, OwnerSystem } from "../types/universe";
 import type { GitHubRepoRaw } from "../types/github";
 import { groupByOwner, normalizeRepo } from "../utils/normalize";
 import { parseRepoInput } from "../utils/parseRepoInput";
@@ -21,8 +21,7 @@ interface ImportStatus {
 interface UniverseState {
   repos: Repo[];
   systems: OwnerSystem[];
-  viewMode: ViewMode;
-  focusedOwner: string | null;
+  selectedOwner: string | null;
   hoveredRepoId: string | null;
 
   addRepoStatus: AddRepoStatus;
@@ -37,8 +36,8 @@ interface UniverseState {
   confirmImport: () => void;
   cancelImport: () => void;
 
-  focusOwner: (owner: string) => void;
-  returnToUniverse: () => void;
+  selectOwner: (owner: string) => void;
+  clearSelection: () => void;
   setHoveredRepo: (id: string | null) => void;
 }
 
@@ -69,8 +68,7 @@ const initialRepos = loadPersisted();
 export const useUniverseStore = create<UniverseState>((set, get) => ({
   repos: initialRepos,
   systems: refreshSystems(initialRepos),
-  viewMode: "universe",
-  focusedOwner: null,
+  selectedOwner: null,
   hoveredRepoId: null,
 
   addRepoStatus: { loading: false, error: null },
@@ -109,18 +107,19 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
     const repos = get().repos.filter((r) => r.id !== id);
     savePersisted(repos);
     const systems = refreshSystems(repos);
-    const focusedOwner = get().focusedOwner;
-    const ownerStillPresent = focusedOwner
-      ? systems.some((s) => s.owner === focusedOwner)
+    const selectedOwner = get().selectedOwner;
+    const ownerStillPresent = selectedOwner
+      ? systems.some((s) => s.owner === selectedOwner)
       : false;
+    const hoveredRepoId = get().hoveredRepoId;
     set({
       repos,
       systems,
-      focusedOwner: ownerStillPresent ? focusedOwner : null,
-      viewMode: ownerStillPresent ? get().viewMode : "universe",
-      hoveredRepoId: get().hoveredRepoId && repos.some((r) => r.id === get().hoveredRepoId)
-        ? get().hoveredRepoId
-        : null,
+      selectedOwner: ownerStillPresent ? selectedOwner : null,
+      hoveredRepoId:
+        hoveredRepoId && repos.some((r) => r.id === hoveredRepoId)
+          ? hoveredRepoId
+          : null,
     });
   },
 
@@ -129,8 +128,7 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
     set({
       repos: [],
       systems: [],
-      focusedOwner: null,
-      viewMode: "universe",
+      selectedOwner: null,
       hoveredRepoId: null,
     });
   },
@@ -211,13 +209,14 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
     });
   },
 
-  focusOwner: (owner: string) => {
+  selectOwner: (owner: string) => {
     if (!get().systems.some((s) => s.owner === owner)) return;
-    set({ viewMode: "system", focusedOwner: owner, hoveredRepoId: null });
+    if (get().selectedOwner === owner) return;
+    set({ selectedOwner: owner, hoveredRepoId: null });
   },
 
-  returnToUniverse: () => {
-    set({ viewMode: "universe", focusedOwner: null, hoveredRepoId: null });
+  clearSelection: () => {
+    set({ selectedOwner: null, hoveredRepoId: null });
   },
 
   setHoveredRepo: (id: string | null) => {

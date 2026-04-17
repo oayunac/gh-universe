@@ -19,14 +19,6 @@ export interface OwnerSystem {
   brightness: number;
 }
 
-export type ViewMode = "universe" | "system";
-
-export interface ViewState {
-  mode: ViewMode;
-  focusedOwner: string | null;
-  hoveredRepoId: string | null;
-}
-
 export interface PersistedState {
   version: number;
   repos: Repo[];

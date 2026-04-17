@@ -4,9 +4,8 @@ import { StarredImport } from "./StarredImport";
 import { RepoList } from "./RepoList";
 
 export function ControlPanel() {
-  const viewMode = useUniverseStore((s) => s.viewMode);
-  const focusedOwner = useUniverseStore((s) => s.focusedOwner);
-  const returnToUniverse = useUniverseStore((s) => s.returnToUniverse);
+  const selectedOwner = useUniverseStore((s) => s.selectedOwner);
+  const clearSelection = useUniverseStore((s) => s.clearSelection);
 
   return (
     <aside className="control-panel">
@@ -15,16 +14,16 @@ export function ControlPanel() {
         <p className="panel-tagline">Explore repos as stars and planets.</p>
       </header>
 
-      {viewMode === "system" && focusedOwner && (
+      {selectedOwner && (
         <div className="panel-section focus-banner">
           <div>
-            <div className="panel-label">Viewing system</div>
-            <div className="focus-owner">{focusedOwner}</div>
+            <div className="panel-label">Selected star</div>
+            <div className="focus-owner">{selectedOwner}</div>
           </div>
           <button
             type="button"
             className="ghost-button"
-            onClick={returnToUniverse}
+            onClick={clearSelection}
           >
             Back to universe
           </button>

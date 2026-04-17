@@ -2,8 +2,8 @@ import { useUniverseStore } from "../store/useUniverseStore";
 
 export function RepoList() {
   const systems = useUniverseStore((s) => s.systems);
-  const focusedOwner = useUniverseStore((s) => s.focusedOwner);
-  const focusOwner = useUniverseStore((s) => s.focusOwner);
+  const selectedOwner = useUniverseStore((s) => s.selectedOwner);
+  const selectOwner = useUniverseStore((s) => s.selectOwner);
   const removeRepo = useUniverseStore((s) => s.removeRepo);
   const clearAll = useUniverseStore((s) => s.clearAll);
 
@@ -37,8 +37,8 @@ export function RepoList() {
           <li key={system.owner} className="repo-list-owner">
             <button
               type="button"
-              className={`owner-chip ${focusedOwner === system.owner ? "active" : ""}`}
-              onClick={() => focusOwner(system.owner)}
+              className={`owner-chip ${selectedOwner === system.owner ? "active" : ""}`}
+              onClick={() => selectOwner(system.owner)}
             >
               <span className="owner-name">{system.owner}</span>
               <span className="owner-count">{system.repos.length}</span>
