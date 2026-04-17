@@ -10,6 +10,8 @@ interface PlanetNodeProps {
   layout: PlanetLayout;
   onHoverChange: (id: string | null) => void;
   hovered: boolean;
+  selected: boolean;
+  onSelect: (id: string) => void;
   revealRef: MutableRefObject<number>;
 }
 
@@ -23,6 +25,8 @@ export function PlanetNode({
   layout,
   onHoverChange,
   hovered,
+  selected,
+  onSelect,
   revealRef,
 }: PlanetNodeProps) {
   const groupRef = useRef<THREE.Group>(null);
@@ -50,13 +54,15 @@ export function PlanetNode({
     if (meshRef.current) {
       meshRef.current.rotation.y += 0.003;
       const material = meshRef.current.material as THREE.MeshBasicMaterial;
-      const base = hovered || localHover ? 1 : brightness;
+      const base = hovered || localHover || selected ? 1 : brightness;
       const target = base * reveal;
       material.opacity += (target - material.opacity) * 0.15;
     }
   });
 
-  const size = 0.14 + brightness * 0.2;
+  // Kept strictly smaller than the host-star size so a bright planet can never
+  // out-scale a dim-owner's star.
+  const size = 0.08 + brightness * 0.12;
   const hitRadius = size * HIT_RADIUS_MULTIPLIER;
 
   return (
@@ -80,7 +86,13 @@ export function PlanetNode({
           onClick={(e) => {
             if (revealRef.current < INTERACT_THRESHOLD) return;
             e.stopPropagation();
-            window.open(repo.url, "_blank", "noopener,noreferrer");
+            // First click: select and center. Second click on the already
+            // selected planet opens the repo on GitHub.
+            if (selected) {
+              window.open(repo.url, "_blank", "noopener,noreferrer");
+            } else {
+              onSelect(repo.id);
+            }
           }}
         >
           <sphereGeometry args={[size, 20, 20]} />

@@ -12,12 +12,19 @@ import { PlanetNode } from "./PlanetNode";
 // feel approachable without visibly exiting the sky sphere.
 const NEAR_RADIUS = 18;
 
+// How quickly the group position tracks toward its target. A softer value
+// lets the "send to middle" motion feel smooth while still keeping up with a
+// moving selected planet.
+const GROUP_TRACK_RATE = 6;
+
 interface SystemPreviewProps {
   system: OwnerSystem;
   direction: THREE.Vector3;
   revealRef: MutableRefObject<number>;
   hoveredRepoId: string | null;
   onHoverRepo: (id: string | null) => void;
+  selectedRepoId: string | null;
+  onSelectRepo: (id: string) => void;
   onStarClick: () => void;
 }
 
@@ -31,6 +38,8 @@ export function SystemPreview({
   revealRef,
   hoveredRepoId,
   onHoverRepo,
+  selectedRepoId,
+  onSelectRepo,
   onStarClick,
 }: SystemPreviewProps) {
   const planets = useMemo(
@@ -50,16 +59,47 @@ export function SystemPreview({
   }, [direction]);
 
   const groupRef = useRef<THREE.Group>(null);
+  const targetGroupPos = useRef(new THREE.Vector3());
+  const basePos = useRef(new THREE.Vector3());
+  const localOffset = useRef(new THREE.Vector3());
 
-  useFrame(() => {
+  useFrame((state, delta) => {
     const reveal = revealRef.current;
     const distance = SKY_RADIUS * (1 - reveal) + NEAR_RADIUS * reveal;
+
+    basePos.current
+      .copy(direction)
+      .multiplyScalar(distance);
+
+    // When a planet is selected, offset the whole group so that planet's
+    // current orbit position lands on basePos. The star and the other planets
+    // then visibly move around the pinned selection.
+    if (selectedRepoId) {
+      const selected = planets.find((p) => p.repo.id === selectedRepoId);
+      if (selected) {
+        const t = state.clock.getElapsedTime();
+        const angle = selected.layout.angle + t * selected.layout.speed;
+        localOffset.current.set(
+          Math.cos(angle) * selected.layout.radius,
+          0,
+          Math.sin(angle) * selected.layout.radius
+        );
+        localOffset.current.applyAxisAngle(
+          new THREE.Vector3(1, 0, 0),
+          selected.layout.tilt
+        );
+        localOffset.current.applyQuaternion(quaternion);
+        targetGroupPos.current.copy(basePos.current).sub(localOffset.current);
+      } else {
+        targetGroupPos.current.copy(basePos.current);
+      }
+    } else {
+      targetGroupPos.current.copy(basePos.current);
+    }
+
     if (groupRef.current) {
-      groupRef.current.position.set(
-        direction.x * distance,
-        direction.y * distance,
-        direction.z * distance
-      );
+      const alpha = 1 - Math.exp(-GROUP_TRACK_RATE * delta);
+      groupRef.current.position.lerp(targetGroupPos.current, alpha);
     }
   });
 
@@ -92,6 +132,8 @@ export function SystemPreview({
           layout={layout}
           hovered={hoveredRepoId === repo.id}
           onHoverChange={onHoverRepo}
+          selected={selectedRepoId === repo.id}
+          onSelect={onSelectRepo}
           revealRef={revealRef}
         />
       ))}

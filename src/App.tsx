@@ -10,9 +10,12 @@ import { useFullscreen } from "./utils/useFullscreen";
 export function App() {
   const systems = useUniverseStore((s) => s.systems);
   const selectedOwner = useUniverseStore((s) => s.selectedOwner);
+  const selectedRepoId = useUniverseStore((s) => s.selectedRepoId);
   const hoveredRepoId = useUniverseStore((s) => s.hoveredRepoId);
   const selectOwner = useUniverseStore((s) => s.selectOwner);
   const clearSelection = useUniverseStore((s) => s.clearSelection);
+  const selectRepo = useUniverseStore((s) => s.selectRepo);
+  const deselectRepo = useUniverseStore((s) => s.deselectRepo);
   const setHoveredRepo = useUniverseStore((s) => s.setHoveredRepo);
 
   const isEmpty = systems.length === 0;
@@ -41,7 +44,10 @@ export function App() {
           gl={{ antialias: true, alpha: false }}
           onCreated={({ gl }) => gl.setClearColor("#05070e")}
           onPointerMissed={() => {
-            if (selectedOwner) clearSelection();
+            // Hierarchical deselect: release the centered planet first, then
+            // the whole system on a subsequent empty click.
+            if (selectedRepoId) deselectRepo();
+            else if (selectedOwner) clearSelection();
           }}
         >
           <Suspense fallback={null}>
@@ -49,6 +55,8 @@ export function App() {
               systems={systems}
               selectedOwner={selectedOwner}
               onSelect={selectOwner}
+              selectedRepoId={selectedRepoId}
+              onSelectRepo={selectRepo}
               hoveredRepoId={hoveredRepoId}
               onHoverRepo={setHoveredRepo}
             />

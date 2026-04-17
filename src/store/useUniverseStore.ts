@@ -22,6 +22,7 @@ interface UniverseState {
   repos: Repo[];
   systems: OwnerSystem[];
   selectedOwner: string | null;
+  selectedRepoId: string | null;
   hoveredRepoId: string | null;
 
   addRepoStatus: AddRepoStatus;
@@ -38,6 +39,8 @@ interface UniverseState {
 
   selectOwner: (owner: string) => void;
   clearSelection: () => void;
+  selectRepo: (id: string) => void;
+  deselectRepo: () => void;
   setHoveredRepo: (id: string | null) => void;
 }
 
@@ -69,6 +72,7 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
   repos: initialRepos,
   systems: refreshSystems(initialRepos),
   selectedOwner: null,
+  selectedRepoId: null,
   hoveredRepoId: null,
 
   addRepoStatus: { loading: false, error: null },
@@ -111,11 +115,15 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
     const ownerStillPresent = selectedOwner
       ? systems.some((s) => s.owner === selectedOwner)
       : false;
+    const selectedRepoId = get().selectedRepoId;
+    const repoStillPresent =
+      selectedRepoId && repos.some((r) => r.id === selectedRepoId);
     const hoveredRepoId = get().hoveredRepoId;
     set({
       repos,
       systems,
       selectedOwner: ownerStillPresent ? selectedOwner : null,
+      selectedRepoId: ownerStillPresent && repoStillPresent ? selectedRepoId : null,
       hoveredRepoId:
         hoveredRepoId && repos.some((r) => r.id === hoveredRepoId)
           ? hoveredRepoId
@@ -129,6 +137,7 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
       repos: [],
       systems: [],
       selectedOwner: null,
+      selectedRepoId: null,
       hoveredRepoId: null,
     });
   },
@@ -212,11 +221,25 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
   selectOwner: (owner: string) => {
     if (!get().systems.some((s) => s.owner === owner)) return;
     if (get().selectedOwner === owner) return;
-    set({ selectedOwner: owner, hoveredRepoId: null });
+    // Changing owner always clears any centered planet — otherwise the new
+    // system would silently inherit a selection that doesn't belong to it.
+    set({ selectedOwner: owner, selectedRepoId: null, hoveredRepoId: null });
   },
 
   clearSelection: () => {
-    set({ selectedOwner: null, hoveredRepoId: null });
+    set({ selectedOwner: null, selectedRepoId: null, hoveredRepoId: null });
+  },
+
+  selectRepo: (id: string) => {
+    const repo = get().repos.find((r) => r.id === id);
+    if (!repo) return;
+    // A repo only makes sense to center once its owner is the active system.
+    if (get().selectedOwner !== repo.owner) return;
+    set({ selectedRepoId: id });
+  },
+
+  deselectRepo: () => {
+    set({ selectedRepoId: null });
   },
 
   setHoveredRepo: (id: string | null) => {

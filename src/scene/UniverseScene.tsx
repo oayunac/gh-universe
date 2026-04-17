@@ -27,6 +27,8 @@ interface UniverseSceneProps {
   systems: OwnerSystem[];
   selectedOwner: string | null;
   onSelect: (owner: string) => void;
+  selectedRepoId: string | null;
+  onSelectRepo: (id: string) => void;
   hoveredRepoId: string | null;
   onHoverRepo: (id: string | null) => void;
 }
@@ -41,6 +43,8 @@ export function UniverseScene({
   systems,
   selectedOwner,
   onSelect,
+  selectedRepoId,
+  onSelectRepo,
   hoveredRepoId,
   onHoverRepo,
 }: UniverseSceneProps) {
@@ -242,6 +246,8 @@ export function UniverseScene({
           revealRef={revealRef}
           hoveredRepoId={hoveredRepoId}
           onHoverRepo={onHoverRepo}
+          selectedRepoId={selectedRepoId}
+          onSelectRepo={onSelectRepo}
           onStarClick={() => selectAndCenter(selectedEntry.system.owner)}
         />
       )}
