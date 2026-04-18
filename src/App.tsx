@@ -10,7 +10,13 @@ import { ShareBanner } from "./components/ShareBanner";
 import { UniverseScene, type CameraControlHandle } from "./scene/UniverseScene";
 import { useUniverseStore } from "./store/useUniverseStore";
 import { useFullscreen } from "./utils/useFullscreen";
-import { decodeShare, readShareTokenFromHash } from "./utils/shareCodec";
+import {
+  decodeShare,
+  encodeShare,
+  readShareTokenFromHash,
+  SHARE_HASH_KEY,
+  type ShareOwner,
+} from "./utils/shareCodec";
 
 export function App() {
   const systems = useUniverseStore((s) => s.systems);
@@ -35,27 +41,54 @@ export function App() {
 
   const receivePendingShare = useUniverseStore((s) => s.receivePendingShare);
 
-  // One-shot: read a share payload from the URL hash on mount. If decoding
-  // succeeds we hand the parsed payload to the store and clear the hash so
-  // a refresh or a subsequent share doesn't re-trigger the prompt. Any
-  // decode/parse failure is ignored silently — the app still boots.
+  // One-shot: read any share payload from the URL hash on mount and hand it
+  // to the store. We intentionally don't clear the hash here — the sync
+  // effect below will overwrite it with the live-state token on the first
+  // render after the initial repos settle. Any decode/parse failure is
+  // ignored silently so a malformed link can't block the app from booting.
   useEffect(() => {
     if (typeof window === "undefined") return;
     const token = readShareTokenFromHash(window.location.hash);
     if (!token) return;
-    // Clear the hash regardless of outcome so malformed tokens don't stick
-    // around in the address bar.
-    const clean = `${window.location.pathname}${window.location.search}`;
-    try {
-      window.history.replaceState(null, "", clean);
-    } catch {
-      // Some embedding contexts forbid history mutation — not fatal.
-    }
     const parsed = decodeShare(token);
     if (parsed && parsed.owners.length > 0) {
       receivePendingShare(parsed);
     }
   }, [receivePendingShare]);
+
+  // Keep the URL hash in sync with the current universe. After any add,
+  // remove, import, or share-apply, we re-encode `systems` and write the
+  // token back with replaceState so copying the browser URL always yields
+  // a valid share link. An empty universe clears the hash entirely.
+  //
+  // This effect runs after the one-shot read above, so even if the user
+  // loaded a shared URL we end up with a hash that reflects what's actually
+  // on screen — consistent with the "URL mirrors state" contract.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const owners: ShareOwner[] = systems
+      .map((s) => ({
+        owner: s.owner,
+        repos: s.repos.map((r) => r.name),
+      }))
+      .filter((o) => o.repos.length > 0);
+
+    const url = new URL(window.location.href);
+    url.hash =
+      owners.length === 0
+        ? ""
+        : `${SHARE_HASH_KEY}=${encodeShare(owners)}`;
+
+    // Only write when the URL would actually change — avoids piling up
+    // replaceState calls in dev tools during rapid store mutations.
+    if (url.toString() === window.location.href) return;
+    try {
+      window.history.replaceState(null, "", url.toString());
+    } catch {
+      // History mutation isn't allowed in every embedding context; not
+      // fatal because in-app sharing still works via the explicit button.
+    }
+  }, [systems]);
 
   return (
     <div
