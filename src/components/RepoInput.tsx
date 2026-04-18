@@ -25,7 +25,7 @@ export function RepoInput() {
           id="repo-input"
           name="repo-input"
           type="text"
-          placeholder="facebook · facebook/react · URL"
+          placeholder="oayunac · oayunac/gh-universe"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           spellCheck={false}
