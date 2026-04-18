@@ -4,6 +4,7 @@ import {
   downloadUniverseList,
   readUniverseListFile,
 } from "../utils/listFile";
+import { ShareButton } from "./ShareButton";
 
 export function SavedLists() {
   const repos = useUniverseStore((s) => s.repos);
@@ -42,7 +43,7 @@ export function SavedLists() {
 
   return (
     <div className="panel-section">
-      <div className="panel-label">Save / load to disk</div>
+      <div className="panel-label">Save, load, or share</div>
       <div className="input-row">
         <button
           type="button"
@@ -60,6 +61,7 @@ export function SavedLists() {
           Load from file
         </button>
       </div>
+      <ShareButton />
       <input
         ref={fileInputRef}
         type="file"

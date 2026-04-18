@@ -1,4 +1,4 @@
-import { Suspense, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { ControlPanel } from "./components/ControlPanel";
 import { SelectionPanel } from "./components/SelectionPanel";
@@ -6,9 +6,11 @@ import { FullscreenToggle } from "./components/FullscreenToggle";
 import { SidebarToggle } from "./components/SidebarToggle";
 import { CameraHud } from "./components/CameraHud";
 import { DiscoveryButton } from "./components/DiscoveryButton";
+import { ShareBanner } from "./components/ShareBanner";
 import { UniverseScene, type CameraControlHandle } from "./scene/UniverseScene";
 import { useUniverseStore } from "./store/useUniverseStore";
 import { useFullscreen } from "./utils/useFullscreen";
+import { decodeShare, readShareTokenFromHash } from "./utils/shareCodec";
 
 export function App() {
   const systems = useUniverseStore((s) => s.systems);
@@ -30,6 +32,30 @@ export function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { isFullscreen, supported: fsSupported, toggle: toggleFullscreen } =
     useFullscreen(canvasWrapperRef);
+
+  const receivePendingShare = useUniverseStore((s) => s.receivePendingShare);
+
+  // One-shot: read a share payload from the URL hash on mount. If decoding
+  // succeeds we hand the parsed payload to the store and clear the hash so
+  // a refresh or a subsequent share doesn't re-trigger the prompt. Any
+  // decode/parse failure is ignored silently — the app still boots.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const token = readShareTokenFromHash(window.location.hash);
+    if (!token) return;
+    // Clear the hash regardless of outcome so malformed tokens don't stick
+    // around in the address bar.
+    const clean = `${window.location.pathname}${window.location.search}`;
+    try {
+      window.history.replaceState(null, "", clean);
+    } catch {
+      // Some embedding contexts forbid history mutation — not fatal.
+    }
+    const parsed = decodeShare(token);
+    if (parsed && parsed.owners.length > 0) {
+      receivePendingShare(parsed);
+    }
+  }, [receivePendingShare]);
 
   return (
     <div
@@ -75,6 +101,7 @@ export function App() {
           </Suspense>
         </Canvas>
         <ControlPanel />
+        <ShareBanner />
         <SelectionPanel />
         <SidebarToggle
           collapsed={sidebarCollapsed}

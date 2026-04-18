@@ -10,6 +10,7 @@ import type { GitHubRepoRaw } from "../types/github";
 import { groupByOwner, normalizeRepo } from "../utils/normalize";
 import { parseOwnerOrRepoInput } from "../utils/parseRepoInput";
 import { loadPersisted, savePersisted } from "../utils/storage";
+import type { ParsedShare } from "../utils/shareCodec";
 
 interface AddRepoStatus {
   loading: boolean;
@@ -29,6 +30,14 @@ interface DiscoverStatus {
   lastDiscovered: string | null;
 }
 
+interface ShareImportStatus {
+  loading: boolean;
+  error: string | null;
+  // One-shot note shown after a successful import. Cleared on the next
+  // mutation so it doesn't hang around indefinitely.
+  note: string | null;
+}
+
 interface UniverseState {
   repos: Repo[];
   systems: OwnerSystem[];
@@ -43,6 +52,13 @@ interface UniverseState {
   addRepoStatus: AddRepoStatus;
   importStatus: ImportStatus;
   discoverStatus: DiscoverStatus;
+  shareImportStatus: ShareImportStatus;
+
+  // Decoded share payload waiting for a user decision (or waiting for the
+  // auto-apply path when the local universe is empty). The URL hash is
+  // cleared as soon as the payload lands in the store, so a refresh won't
+  // re-prompt.
+  pendingShare: ParsedShare | null;
 
   addRepoByInput: (input: string) => Promise<void>;
   removeRepo: (id: string) => void;
@@ -55,6 +71,11 @@ interface UniverseState {
   cancelImport: () => void;
 
   discoverOwner: () => Promise<void>;
+
+  receivePendingShare: (payload: ParsedShare) => void;
+  dismissPendingShare: () => void;
+  applyPendingShare: () => Promise<void>;
+  clearShareImportNote: () => void;
 
   selectOwner: (owner: string) => void;
   clearSelection: () => void;
@@ -101,6 +122,8 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
   addRepoStatus: { loading: false, error: null },
   importStatus: { loading: false, error: null, candidates: [], username: null },
   discoverStatus: { loading: false, error: null, lastDiscovered: null },
+  shareImportStatus: { loading: false, error: null, note: null },
+  pendingShare: null,
 
   addRepoByInput: async (input: string) => {
     const parsed = parseOwnerOrRepoInput(input);
@@ -413,6 +436,92 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
       selectedRepoId: null,
       hoveredRepoId: null,
     });
+  },
+
+  receivePendingShare: (payload: ParsedShare) => {
+    // No-op if the share is empty — nothing to import, no need to prompt.
+    if (!payload || payload.owners.length === 0) return;
+    set({
+      pendingShare: payload,
+      shareImportStatus: { loading: false, error: null, note: null },
+    });
+  },
+
+  dismissPendingShare: () => {
+    set({ pendingShare: null });
+  },
+
+  // Reconstructs the full universe from the pending share payload by
+  // refetching each repo from GitHub. The share only carries owner/repo
+  // identities — everything else (stars, forks, language, description) comes
+  // from the live API so the imported universe always shows fresh metadata.
+  //
+  // Failure modes:
+  //   • Rate-limit: surface a single clear message, keep the current list.
+  //   • Individual 404s: skip that repo, continue with the rest.
+  //   • All failures: keep the current repos and show an error note.
+  applyPendingShare: async () => {
+    const pending = get().pendingShare;
+    if (!pending || pending.owners.length === 0) return;
+    set({ shareImportStatus: { loading: true, error: null, note: null } });
+
+    const targets = pending.owners.flatMap((o) =>
+      o.repos.map((name) => ({ owner: o.owner, name }))
+    );
+    const results = await Promise.allSettled(
+      targets.map(({ owner, name }) => fetchRepo(owner, name))
+    );
+
+    const now = Date.now();
+    const imported: Repo[] = [];
+    let rateLimited = false;
+    let missing = 0;
+    results.forEach((result) => {
+      if (result.status === "fulfilled") {
+        imported.push(normalizeRepo(result.value, now));
+      } else if (result.reason instanceof GitHubError) {
+        if (result.reason.kind === "rate_limit") rateLimited = true;
+        else if (result.reason.kind === "not_found") missing += 1;
+      }
+    });
+
+    if (imported.length === 0) {
+      set({
+        pendingShare: null,
+        shareImportStatus: {
+          loading: false,
+          error: rateLimited
+            ? "GitHub rate limit reached. Try again later."
+            : "Could not fetch any of the shared repositories.",
+          note: null,
+        },
+      });
+      return;
+    }
+
+    savePersisted(imported);
+    const skipped = targets.length - imported.length;
+    const note =
+      skipped > 0
+        ? `Imported ${imported.length} of ${targets.length} shared repos${
+            rateLimited ? " (some hit rate limits)" : missing > 0 ? " (some missing)" : ""
+          }.`
+        : `Imported ${imported.length} shared repos.`;
+    set({
+      repos: imported,
+      systems: refreshSystems(imported),
+      selectedOwner: null,
+      selectedRepoId: null,
+      hoveredRepoId: null,
+      pendingShare: null,
+      shareImportStatus: { loading: false, error: null, note },
+    });
+  },
+
+  clearShareImportNote: () => {
+    const status = get().shareImportStatus;
+    if (!status.error && !status.note) return;
+    set({ shareImportStatus: { loading: false, error: null, note: null } });
   },
 
   selectOwner: (owner: string) => {

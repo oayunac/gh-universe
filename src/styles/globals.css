@@ -683,6 +683,55 @@ button:disabled {
   }
 }
 
+.share-button {
+  width: 100%;
+}
+
+.share-banner {
+  position: absolute;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: min(560px, calc(100vw - 120px));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(10, 14, 24, 0.88);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow);
+  font-size: 12px;
+  color: var(--fg);
+  z-index: 5;
+}
+
+.share-banner-error {
+  border-color: rgba(255, 122, 122, 0.4);
+  color: var(--error);
+}
+
+.share-banner-prompt {
+  border-color: rgba(255, 210, 122, 0.35);
+}
+
+.share-banner-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .share-banner {
+    left: 12px;
+    right: 12px;
+    transform: none;
+    max-width: none;
+    flex-wrap: wrap;
+  }
+}
+
 .canvas-hint {
   position: absolute;
   bottom: 16px;
@@ -960,6 +1009,13 @@ button:disabled {
     right: 12px;
     width: auto;
     max-width: none;
+  }
+
+  /* If both the share banner and the selection card land on screen at the
+     same time on a narrow viewport, drop the selection card below so both
+     stay readable. */
+  .share-banner ~ .selection-panel {
+    top: 118px;
   }
 
   .corner-stack {
