@@ -503,6 +503,10 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
       selectedOwner: null,
       selectedRepoId: null,
       hoveredRepoId: null,
+      // Stubs have totalStars=0, so any prior non-zero threshold would
+      // filter the newly-imported sky straight out of view. Reset it so
+      // the shared universe is unconditionally visible post-import.
+      visibilityThreshold: 0,
       pendingShare: null,
       shareImportStatus: {
         loading: false,

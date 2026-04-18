@@ -1,16 +1,16 @@
 const MIN_BRIGHTNESS = 0.08;
 const MAX_BRIGHTNESS = 1.0;
 
-// Brightness used for a system whose repos are still unhydrated stubs. We
-// can't compute the real star brightness until at least one repo fetches,
-// so pin to a mid-range value so the user can still see the star and know
-// it exists.
-export const PENDING_OWNER_BRIGHTNESS = 0.5;
+// Brightness used for a system whose repos are still unhydrated stubs.
+// Pinned near the top of the scale so a freshly-imported universe is
+// actually *visible* — 0.5 left stars at ~50% opacity with a ~3px disc,
+// which blended into the backdrop and made the post-import sky look
+// empty. Real owners will re-rank once their repo metadata lands.
+export const PENDING_OWNER_BRIGHTNESS = 0.9;
 
-// Same idea for individual planets: a stub repo shouldn't visually claim
-// "0 stars, tiny planet" before it's even been fetched. PlanetNode reads
-// this when `repo.hydrated === false`.
-export const PENDING_REPO_BRIGHTNESS = 0.45;
+// Planets use a slightly lower placeholder so the host star still reads
+// as the anchor of the system when both are unhydrated.
+export const PENDING_REPO_BRIGHTNESS = 0.7;
 
 // >1 stretches the gradient: small-star owners stay distinctly dim while only
 // the very top of the population approaches max brightness. Tuned by feel —
