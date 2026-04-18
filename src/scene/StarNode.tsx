@@ -23,6 +23,10 @@ interface StarNodeProps {
   // dim non-selected sky stars while the viewer is zooming into the selected
   // system.
   revealRef?: MutableRefObject<number>;
+  // When provided, a truthy value here suppresses click activation so a pan
+  // or pinch gesture that happens to end over a star can't accidentally
+  // select it on touch devices.
+  didDragRef?: MutableRefObject<boolean>;
 }
 
 // Below this dim factor the star becomes effectively invisible; we also skip
@@ -48,6 +52,7 @@ export function StarNode({
   interactive = true,
   hoverLabel = true,
   revealRef,
+  didDragRef,
 }: StarNodeProps) {
   const [hovered, setHovered] = useState(false);
   const coreRef = useRef<THREE.Mesh>(null);
@@ -84,11 +89,13 @@ export function StarNode({
         },
         onClick: (e: ThreeEvent<MouseEvent>) => {
           if (isDimmed()) return;
+          if (didDragRef?.current) return;
           e.stopPropagation();
           onClick?.();
         },
         onDoubleClick: (e: ThreeEvent<MouseEvent>) => {
           if (isDimmed()) return;
+          if (didDragRef?.current) return;
           e.stopPropagation();
           onDoubleClick?.();
         },

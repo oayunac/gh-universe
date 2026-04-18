@@ -15,6 +15,9 @@ interface PlanetNodeProps {
   selected: boolean;
   onSelect: (id: string) => void;
   revealRef: MutableRefObject<number>;
+  // Shared drag/pinch suppression flag. When true at pointerup, the planet
+  // treats the event as a trailing gesture instead of a tap.
+  didDragRef?: MutableRefObject<boolean>;
 }
 
 // Planets only become interactive once the system has revealed enough — this
@@ -30,6 +33,7 @@ export function PlanetNode({
   selected,
   onSelect,
   revealRef,
+  didDragRef,
 }: PlanetNodeProps) {
   const groupRef = useRef<THREE.Group>(null);
   const meshRef = useRef<THREE.Mesh>(null);
@@ -87,6 +91,7 @@ export function PlanetNode({
           }}
           onClick={(e) => {
             if (revealRef.current < INTERACT_THRESHOLD) return;
+            if (didDragRef?.current) return;
             e.stopPropagation();
             // First click: select and center. Second click on the already
             // selected planet opens the repo on GitHub.

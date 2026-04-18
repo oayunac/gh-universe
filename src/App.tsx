@@ -95,8 +95,8 @@ export function App() {
         </div>
         <div className="canvas-hint">
           {selectedOwner
-            ? "Zoom in to approach the system · click empty space to return"
-            : "Drag to look · click a star to select, then zoom to approach"}
+            ? "Pinch or wheel to approach · tap empty space to return"
+            : "Drag to look · tap a star to select · pinch or wheel to zoom"}
         </div>
       </main>
     </div>

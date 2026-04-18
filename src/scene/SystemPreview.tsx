@@ -23,6 +23,9 @@ interface SystemPreviewProps {
   onSelectRepo: (id: string) => void;
   onStarClick: () => void;
   onStarDoubleClick: () => void;
+  // Shared drag/pinch suppression flag forwarded into the interactive scene
+  // nodes so a tail-end click from a drag can't accidentally re-select.
+  didDragRef?: MutableRefObject<boolean>;
 }
 
 // Renders the selected owner's star system at the owner's fixed sky direction.
@@ -41,6 +44,7 @@ export function SystemPreview({
   onSelectRepo,
   onStarClick,
   onStarDoubleClick,
+  didDragRef,
 }: SystemPreviewProps) {
   const planets = useMemo(
     () =>
@@ -89,6 +93,7 @@ export function SystemPreview({
         onDoubleClick={onStarDoubleClick}
         // Persistent label below replaces the hover label here.
         hoverLabel={false}
+        didDragRef={didDragRef}
       />
       {/* Persistent selection marker on the host star — the SystemPreview only
           mounts when an owner is selected, so its presence equals selection. */}
@@ -119,6 +124,7 @@ export function SystemPreview({
           selected={selectedRepoId === repo.id}
           onSelect={onSelectRepo}
           revealRef={revealRef}
+          didDragRef={didDragRef}
         />
       ))}
     </group>

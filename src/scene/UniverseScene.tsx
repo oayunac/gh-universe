@@ -33,6 +33,10 @@ const MAX_FOV = 70;
 const DEFAULT_FOV = 55;
 const FOV_LERP = 8;
 const WHEEL_SENSITIVITY = 0.035;
+// Max total pointer travel (in CSS pixels) that still counts as a tap/click.
+// Below this we suppress the drag/deselect side effects; above it we commit to
+// a camera-rotation drag.
+const TAP_THRESHOLD_PX = 6;
 
 // Reveal curve — maps zoom depth (narrowing FOV) onto a smoothstep so the
 // system begins emerging once the user has clearly committed to zooming in.
@@ -145,9 +149,12 @@ export function UniverseScene({
   const targetPitchRef = useRef(0);
   const targetFovRef = useRef(DEFAULT_FOV);
 
-  // Drag state
+  // Drag state. `lastRef` is the last position of the dragging pointer in CSS
+  // pixels. `didDragRef` flips true once we cross the tap threshold and acts
+  // as a "suppress click" flag for StarNode / PlanetNode on pointerup.
   const draggingRef = useRef(false);
   const lastRef = useRef({ x: 0, y: 0 });
+  const didDragRef = useRef(false);
 
   // Mutable handle for the deselect callback so the drag listener (bound once)
   // can always reach the latest store-backed implementation.
@@ -266,33 +273,93 @@ export function UniverseScene({
 
   useEffect(() => {
     const el = gl.domElement;
+    // Prevent the browser from interpreting canvas drags as scrolls or
+    // pinches so pointer events reach us cleanly on phones/tablets/touch
+    // laptops. Outside the canvas, normal page gestures still apply.
     el.style.touchAction = "none";
+    el.style.userSelect = "none";
     if (camera instanceof THREE.PerspectiveCamera) {
       camera.fov = DEFAULT_FOV;
       camera.updateProjectionMatrix();
     }
     targetFovRef.current = DEFAULT_FOV;
 
+    // Multi-pointer state. A single pointer gives mouse/trackpad/single-touch
+    // drag. Two pointers switch to a pinch gesture that drives the shared
+    // targetFovRef — the same state mouse wheel and the HUD zoom buttons
+    // mutate — so every zoom pathway flows through one place.
+    type Pt = { x: number; y: number };
+    const pointers = new Map<number, Pt>();
+    let dragId: number | null = null;
+    let pinchActive = false;
+    let pinchInitialDistance = 0;
+    let pinchInitialFov = DEFAULT_FOV;
+    let totalTravel = 0;
+
+    const distance = (a: Pt, b: Pt) => Math.hypot(a.x - b.x, a.y - b.y);
+
     const onPointerDown = (e: PointerEvent) => {
       if (e.button !== 0 && e.pointerType === "mouse") return;
-      draggingRef.current = true;
-      lastRef.current = { x: e.clientX, y: e.clientY };
-      try {
-        el.setPointerCapture(e.pointerId);
-      } catch {
-        // Pointer capture is a nice-to-have; ignore failures.
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+      if (pointers.size === 1) {
+        dragId = e.pointerId;
+        draggingRef.current = true;
+        didDragRef.current = false;
+        totalTravel = 0;
+        lastRef.current = { x: e.clientX, y: e.clientY };
+        try {
+          el.setPointerCapture(e.pointerId);
+        } catch {
+          // Pointer capture is a nice-to-have; ignore failures.
+        }
+      } else if (pointers.size === 2) {
+        // Second finger down — switch to pinch. Cancel the in-flight drag so
+        // the first finger can anchor the gesture instead of rotating.
+        draggingRef.current = false;
+        dragId = null;
+        pinchActive = true;
+        const pts = Array.from(pointers.values());
+        pinchInitialDistance = Math.max(1, distance(pts[0], pts[1]));
+        pinchInitialFov = targetFovRef.current;
+        // A pinch counts as a drag for click-suppression purposes — the user
+        // is zooming, not tapping a star.
+        didDragRef.current = true;
       }
     };
 
     const onPointerMove = (e: PointerEvent) => {
-      if (!draggingRef.current) return;
-      const dx = e.clientX - lastRef.current.x;
-      const dy = e.clientY - lastRef.current.y;
+      if (!pointers.has(e.pointerId)) return;
+      const pt = { x: e.clientX, y: e.clientY };
+      pointers.set(e.pointerId, pt);
+
+      if (pinchActive && pointers.size >= 2) {
+        const pts = Array.from(pointers.values()).slice(0, 2);
+        const d = Math.max(1, distance(pts[0], pts[1]));
+        // Spread fingers apart → d grows → ratio < 1 → FOV shrinks → zoom in.
+        // Same clamp and storage as the mouse-wheel path; the reveal curve in
+        // useFrame reacts to FOV identically regardless of source.
+        const ratio = pinchInitialDistance / d;
+        targetFovRef.current = Math.max(
+          MIN_FOV,
+          Math.min(MAX_FOV, pinchInitialFov * ratio)
+        );
+        return;
+      }
+
+      if (e.pointerId !== dragId || !draggingRef.current) return;
+      const dx = pt.x - lastRef.current.x;
+      const dy = pt.y - lastRef.current.y;
       if (dx === 0 && dy === 0) return;
-      lastRef.current = { x: e.clientX, y: e.clientY };
-      // An actual drag gesture releases any centered planet — the user is
-      // explicitly asking to look elsewhere.
-      onDeselectRepoRef.current();
+      totalTravel += Math.hypot(dx, dy);
+      lastRef.current = pt;
+      if (!didDragRef.current) {
+        if (totalTravel < TAP_THRESHOLD_PX) return;
+        // Crossed the tap threshold — commit to a drag. Deselect any centered
+        // planet; the user is explicitly looking somewhere else.
+        didDragRef.current = true;
+        onDeselectRepoRef.current();
+      }
       targetYawRef.current += dx * YAW_SENSITIVITY * DRAG_YAW_DIRECTION;
       targetPitchRef.current += dy * PITCH_SENSITIVITY * DRAG_PITCH_DIRECTION;
       targetPitchRef.current = Math.max(
@@ -301,12 +368,36 @@ export function UniverseScene({
       );
     };
 
-    const stopDragging = (e: PointerEvent) => {
-      draggingRef.current = false;
+    const endPointer = (e: PointerEvent) => {
+      pointers.delete(e.pointerId);
       try {
         el.releasePointerCapture(e.pointerId);
       } catch {
         // Nothing to release.
+      }
+
+      if (pinchActive && pointers.size < 2) {
+        pinchActive = false;
+        if (pointers.size === 1) {
+          // Lifted one finger mid-pinch — resume drag from the remaining
+          // touch so look-around doesn't stall after a zoom.
+          const [[id, pt]] = Array.from(pointers.entries());
+          dragId = id;
+          draggingRef.current = true;
+          lastRef.current = { x: pt.x, y: pt.y };
+          totalTravel = 0;
+          // Keep didDragRef true — the gesture that started as a pinch shouldn't
+          // tail-end into a tap on pointerup.
+        } else {
+          dragId = null;
+          draggingRef.current = false;
+        }
+        return;
+      }
+
+      if (e.pointerId === dragId) {
+        dragId = null;
+        draggingRef.current = false;
       }
     };
 
@@ -320,15 +411,15 @@ export function UniverseScene({
 
     el.addEventListener("pointerdown", onPointerDown);
     el.addEventListener("pointermove", onPointerMove);
-    el.addEventListener("pointerup", stopDragging);
-    el.addEventListener("pointercancel", stopDragging);
+    el.addEventListener("pointerup", endPointer);
+    el.addEventListener("pointercancel", endPointer);
     el.addEventListener("wheel", onWheel, { passive: false });
 
     return () => {
       el.removeEventListener("pointerdown", onPointerDown);
       el.removeEventListener("pointermove", onPointerMove);
-      el.removeEventListener("pointerup", stopDragging);
-      el.removeEventListener("pointercancel", stopDragging);
+      el.removeEventListener("pointerup", endPointer);
+      el.removeEventListener("pointercancel", endPointer);
       el.removeEventListener("wheel", onWheel);
     };
   }, [camera, gl]);
@@ -437,6 +528,7 @@ export function UniverseScene({
             onClick={() => selectAndCenter(system.owner)}
             onDoubleClick={() => zoomIntoSystem(system.owner)}
             revealRef={revealRef}
+            didDragRef={didDragRef}
           />
         )
       )}
@@ -454,6 +546,7 @@ export function UniverseScene({
           onSelectRepo={onSelectRepo}
           onStarClick={() => selectAndCenter(selectedEntry.system.owner)}
           onStarDoubleClick={() => zoomIntoSystem(selectedEntry.system.owner)}
+          didDragRef={didDragRef}
         />
       )}
     </>
