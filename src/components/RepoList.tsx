@@ -111,7 +111,9 @@ export function RepoList() {
                       {repo.name}
                     </button>
                     <span className="repo-sublist-meta">
-                      <span>★ {repo.stars.toLocaleString()}</span>
+                      <span>
+                        ★ {repo.hydrated === false ? "—" : repo.stars.toLocaleString()}
+                      </span>
                       <button
                         type="button"
                         className="ghost-button tiny"

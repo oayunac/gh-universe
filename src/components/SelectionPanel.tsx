@@ -53,6 +53,7 @@ function StarView({
   system: OwnerSystem;
   spectral: ReturnType<typeof ownerSpectral>;
 }) {
+  const pending = system.repos.every((r) => r.hydrated === false);
   return (
     <section className="selection-panel" aria-label="Selected star">
       <header className="selection-panel-header">
@@ -68,11 +69,16 @@ function StarView({
       </header>
       <div className="selection-panel-title">{system.owner}</div>
       <div className="selection-panel-stats">
-        <span>★ {formatNumber(system.totalStars)} total</span>
+        <span>★ {pending ? "—" : formatNumber(system.totalStars)} total</span>
         <span>
           {system.repos.length} {system.repos.length === 1 ? "planet" : "planets"}
         </span>
       </div>
+      {pending && (
+        <div className="selection-panel-footer">
+          Loading repo details from GitHub…
+        </div>
+      )}
       <a
         className="selection-panel-link"
         href={`https://github.com/${encodeURIComponent(system.owner)}`}
@@ -94,6 +100,7 @@ function PlanetView({
   owner: string;
   spectralColor: string;
 }) {
+  const pending = repo.hydrated === false;
   return (
     <section className="selection-panel" aria-label="Selected planet">
       <header className="selection-panel-header">
@@ -108,17 +115,25 @@ function PlanetView({
         </span>
       </header>
       <div className="selection-panel-title">{repo.fullName}</div>
-      {repo.description && (
-        <p className="selection-panel-description">{repo.description}</p>
+      {pending ? (
+        <p className="selection-panel-description">
+          Fetching details from GitHub…
+        </p>
+      ) : (
+        repo.description && (
+          <p className="selection-panel-description">{repo.description}</p>
+        )
       )}
       <div className="selection-panel-stats">
-        <span>★ {formatNumber(repo.stars)}</span>
-        <span>⑂ {formatNumber(repo.forks)}</span>
-        {repo.language && <span>{repo.language}</span>}
+        <span>★ {pending ? "—" : formatNumber(repo.stars)}</span>
+        <span>⑂ {pending ? "—" : formatNumber(repo.forks)}</span>
+        {!pending && repo.language && <span>{repo.language}</span>}
       </div>
-      <div className="selection-panel-footer">
-        Updated {formatDate(repo.pushedAt)}
-      </div>
+      {!pending && repo.pushedAt && (
+        <div className="selection-panel-footer">
+          Updated {formatDate(repo.pushedAt)}
+        </div>
+      )}
       <a
         className="selection-panel-link"
         href={repo.url}

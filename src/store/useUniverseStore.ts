@@ -7,7 +7,7 @@ import {
 } from "../api/github";
 import type { Repo, OwnerSystem } from "../types/universe";
 import type { GitHubRepoRaw } from "../types/github";
-import { groupByOwner, normalizeRepo } from "../utils/normalize";
+import { createStubRepo, groupByOwner, normalizeRepo } from "../utils/normalize";
 import { parseOwnerOrRepoInput } from "../utils/parseRepoInput";
 import { loadPersisted, savePersisted } from "../utils/storage";
 import type { ParsedShare } from "../utils/shareCodec";
@@ -37,6 +37,11 @@ interface ShareImportStatus {
   // mutation so it doesn't hang around indefinitely.
   note: string | null;
 }
+
+// Tracks which repo ids have an in-flight hydration fetch so a flurry of
+// re-selections can't duplicate requests. Kept outside the zustand state
+// because it's transient and doesn't need to drive re-renders.
+const hydrationInFlight = new Set<string>();
 
 interface UniverseState {
   repos: Repo[];
@@ -76,6 +81,12 @@ interface UniverseState {
   dismissPendingShare: () => void;
   applyPendingShare: () => Promise<void>;
   clearShareImportNote: () => void;
+
+  // Lazy-hydrate a single repo or all of an owner's repos. Both are no-ops
+  // when the repo/owner is already hydrated or has a fetch in flight, so
+  // callers can invoke them freely from selection side effects.
+  hydrateRepo: (id: string) => Promise<void>;
+  hydrateOwner: (owner: string) => Promise<void>;
 
   selectOwner: (owner: string) => void;
   clearSelection: () => void;
@@ -451,48 +462,34 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
     set({ pendingShare: null });
   },
 
-  // Reconstructs the full universe from the pending share payload by
-  // refetching each repo from GitHub. The share only carries owner/repo
-  // identities — everything else (stars, forks, language, description) comes
-  // from the live API so the imported universe always shows fresh metadata.
-  //
-  // Failure modes:
-  //   • Rate-limit: surface a single clear message, keep the current list.
-  //   • Individual 404s: skip that repo, continue with the rest.
-  //   • All failures: keep the current repos and show an error note.
+  // Materializes the pending share as a set of stub repos without hitting
+  // the GitHub API. Stubs carry only the identity known from the URL
+  // (owner/name/id/url) — stars, description, etc. are placeholders until
+  // the user actually engages with a system, at which point hydrateOwner
+  // backfills real metadata. This keeps large shares (dozens+ of repos)
+  // from burning the unauthenticated rate budget on initial load.
   applyPendingShare: async () => {
     const pending = get().pendingShare;
     if (!pending || pending.owners.length === 0) return;
-    set({ shareImportStatus: { loading: true, error: null, note: null } });
-
-    const targets = pending.owners.flatMap((o) =>
-      o.repos.map((name) => ({ owner: o.owner, name }))
-    );
-    const results = await Promise.allSettled(
-      targets.map(({ owner, name }) => fetchRepo(owner, name))
-    );
 
     const now = Date.now();
     const imported: Repo[] = [];
-    let rateLimited = false;
-    let missing = 0;
-    results.forEach((result) => {
-      if (result.status === "fulfilled") {
-        imported.push(normalizeRepo(result.value, now));
-      } else if (result.reason instanceof GitHubError) {
-        if (result.reason.kind === "rate_limit") rateLimited = true;
-        else if (result.reason.kind === "not_found") missing += 1;
+    const seen = new Set<string>();
+    for (const o of pending.owners) {
+      for (const name of o.repos) {
+        const stub = createStubRepo(o.owner, name, now);
+        if (seen.has(stub.id)) continue;
+        seen.add(stub.id);
+        imported.push(stub);
       }
-    });
+    }
 
     if (imported.length === 0) {
       set({
         pendingShare: null,
         shareImportStatus: {
           loading: false,
-          error: rateLimited
-            ? "GitHub rate limit reached. Try again later."
-            : "Could not fetch any of the shared repositories.",
+          error: "Shared payload contained no valid repositories.",
           note: null,
         },
       });
@@ -500,13 +497,6 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
     }
 
     savePersisted(imported);
-    const skipped = targets.length - imported.length;
-    const note =
-      skipped > 0
-        ? `Imported ${imported.length} of ${targets.length} shared repos${
-            rateLimited ? " (some hit rate limits)" : missing > 0 ? " (some missing)" : ""
-          }.`
-        : `Imported ${imported.length} shared repos.`;
     set({
       repos: imported,
       systems: refreshSystems(imported),
@@ -514,7 +504,11 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
       selectedRepoId: null,
       hoveredRepoId: null,
       pendingShare: null,
-      shareImportStatus: { loading: false, error: null, note },
+      shareImportStatus: {
+        loading: false,
+        error: null,
+        note: `Imported ${imported.length} shared repo${imported.length === 1 ? "" : "s"} — details load when you open them.`,
+      },
     });
   },
 
@@ -524,12 +518,65 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
     set({ shareImportStatus: { loading: false, error: null, note: null } });
   },
 
+  hydrateRepo: async (id: string) => {
+    if (hydrationInFlight.has(id)) return;
+    const target = get().repos.find((r) => r.id === id);
+    if (!target || target.hydrated !== false) return;
+    hydrationInFlight.add(id);
+    try {
+      const raw = await fetchRepo(target.owner, target.name);
+      const next = normalizeRepo(raw, target.addedAt);
+      const repos = get().repos.map((r) => (r.id === id ? next : r));
+      savePersisted(repos);
+      set({ repos, systems: refreshSystems(repos) });
+    } catch {
+      // Leave the stub alone — the user can retry by re-selecting. We
+      // deliberately don't surface a toast per failed repo; a whole-owner
+      // failure already shows up via hydrateOwner.
+    } finally {
+      hydrationInFlight.delete(id);
+    }
+  },
+
+  hydrateOwner: async (owner: string) => {
+    const stubs = get().repos.filter(
+      (r) =>
+        r.owner === owner &&
+        r.hydrated === false &&
+        !hydrationInFlight.has(r.id)
+    );
+    if (stubs.length === 0) return;
+    stubs.forEach((s) => hydrationInFlight.add(s.id));
+    try {
+      const results = await Promise.allSettled(
+        stubs.map((s) => fetchRepo(s.owner, s.name))
+      );
+      const updates = new Map<string, Repo>();
+      results.forEach((result, idx) => {
+        if (result.status === "fulfilled") {
+          const stub = stubs[idx];
+          updates.set(stub.id, normalizeRepo(result.value, stub.addedAt));
+        }
+      });
+      if (updates.size === 0) return;
+      const repos = get().repos.map((r) => updates.get(r.id) ?? r);
+      savePersisted(repos);
+      set({ repos, systems: refreshSystems(repos) });
+    } finally {
+      stubs.forEach((s) => hydrationInFlight.delete(s.id));
+    }
+  },
+
   selectOwner: (owner: string) => {
     if (!get().systems.some((s) => s.owner === owner)) return;
     if (get().selectedOwner === owner) return;
     // Changing owner always clears any centered planet — otherwise the new
     // system would silently inherit a selection that doesn't belong to it.
     set({ selectedOwner: owner, selectedRepoId: null, hoveredRepoId: null });
+    // Fire-and-forget: actually picking a system means the user is about to
+    // inspect it, so this is the right moment to spend rate budget on its
+    // real metadata. No-op if everything is already hydrated.
+    get().hydrateOwner(owner);
   },
 
   clearSelection: () => {
@@ -542,6 +589,9 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
     // A repo only makes sense to center once its owner is the active system.
     if (get().selectedOwner !== repo.owner) return;
     set({ selectedRepoId: id });
+    // Opening a single planet is the most direct signal the user wants this
+    // repo's details. Prioritize hydrating just this one.
+    if (repo.hydrated === false) get().hydrateRepo(id);
   },
 
   deselectRepo: () => {
@@ -561,6 +611,10 @@ export const useUniverseStore = create<UniverseState>((set, get) => ({
       selectedRepoId: id,
       hoveredRepoId: null,
     });
+    // Hydrate the requested repo first (fast path for the SelectionPanel),
+    // then catch up the rest of its system in the background.
+    if (repo.hydrated === false) get().hydrateRepo(id);
+    get().hydrateOwner(repo.owner);
   },
 
   setHoveredRepo: (id: string | null) => {

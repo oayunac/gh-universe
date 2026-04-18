@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import type { Repo } from "../types/universe";
 import type { PlanetLayout } from "../utils/layout";
-import { repoBrightness } from "../utils/brightness";
+import { PENDING_REPO_BRIGHTNESS, repoBrightness } from "../utils/brightness";
 import { SelectionRing } from "./SelectionRing";
 import { SceneLabel } from "./SceneLabel";
 
@@ -39,7 +39,13 @@ export function PlanetNode({
   const meshRef = useRef<THREE.Mesh>(null);
   const [localHover, setLocalHover] = useState(false);
 
-  const brightness = useMemo(() => repoBrightness(repo.stars), [repo.stars]);
+  const brightness = useMemo(
+    () =>
+      repo.hydrated === false
+        ? PENDING_REPO_BRIGHTNESS
+        : repoBrightness(repo.stars),
+    [repo.stars, repo.hydrated]
+  );
   const color = useMemo(() => {
     const base = new THREE.Color("#7da9ff");
     return base.lerp(new THREE.Color("#ffffff"), brightness * 0.5);
